@@ -1,5 +1,3 @@
-import os
-import sys
 import re
 import openai
 
@@ -29,7 +27,7 @@ Your client has provided some constraints for you to satisfy, but within those c
 Client constraints:
 {self.conditioning_info}
 
-Come up with a numbered list of ten ideas. Focus on variety. Each idea should have a title and a one sentence summary.
+Come up with a numbered list of eight of your best ideas. Focus on variety. Each idea should have a title and a one sentence summary.
 """
 
     def make_ideas(self, n):
