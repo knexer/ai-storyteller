@@ -3,7 +3,7 @@ import sys
 import re
 import openai
 
-def parse_ideas(self, texts):
+def parse_ideas(texts):
     # The regular expression pattern:
     # It looks for a number followed by a '.', ':', or ')' (with optional spaces)
     # and then captures any text until it finds a newline character or the end of the string
@@ -18,7 +18,7 @@ def parse_ideas(self, texts):
     return matches
 
 class Ideation:
-    def __init__(self, conditioning_info, n):
+    def __init__(self, conditioning_info):
         self.conditioning_info = conditioning_info
 
     def outline_prompt(self):
