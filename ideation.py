@@ -27,7 +27,12 @@ Your client has provided some constraints for you to satisfy, but within those c
 Client constraints:
 {self.conditioning_info}
 
-Come up with a numbered list of eight of your best ideas. Focus on variety. Each idea should have a title and a one sentence summary.
+Each idea should have a title and a 2-3 sentence premise mentioning the protagonist, the setting, and the conflict, while also highlighting what makes the story interesting.
+Here's an example of a successful premise:
+“Romeo and Juliet": Two teens, Romeo and Juliet, pursue their forbidden love with each other—to the chagrin of their rival families. When Juliet must choose between her family and her heart, both lovers must find a way to stay united, even if fate won't allow it.
+
+
+Come up with a numbered list of eight of your best ideas. Focus on variety within the scope of the client's requests.
 """
 
     def make_ideas(self, n):

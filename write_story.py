@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from ideation import Ideation
 from filter_ideas import filter_ideas
+from outline_story import Outliner
 
 def print_numbered_list(label, list):
     print(f"\n{label}:\n")
@@ -54,8 +55,13 @@ sorted_by_combined_votes = sorted(combined_vote_counts.items(), key=lambda x: x[
 print_numbered_list("Overall best ideas", sorted_by_combined_votes)
 
 selected_title = sorted_by_combined_votes[0][0]
+selected_idea = get_full_idea(ideas, selected_title)
 print(f"\nSelected idea:\n")
-print(get_full_idea(ideas, selected_title))
+print(selected_idea)
+
+outlines = Outliner(conditioning_info, selected_title, selected_idea).outline()
+print(f"\nPotential outlines:\n")
+print("\n\n========\n\n".join(outline for outline in outlines))
 
 # Write a more detailed story description
 # Split the story up into pages, each with a couple lines of story and a brief image description.
