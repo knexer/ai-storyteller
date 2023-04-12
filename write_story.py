@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from ideation import Ideation
 from filter_ideas import filter_ideas
 from outline_story import Outliner
+from draft_story import Drafter
 
 def print_numbered_list(label, list):
     print(f"\n{label}:\n")
@@ -62,6 +63,10 @@ print(selected_idea)
 outlines = Outliner(conditioning_info, selected_title, selected_idea).outline()
 print(f"\nPotential outlines:\n")
 print("\n\n========\n\n".join(outline for outline in outlines))
+
+stories = Drafter(conditioning_info, outlines[0]).draft()
+print(f"\nPotential stories:\n")
+print("\n\n========\n\n".join(story for story in stories))
 
 # Write a more detailed story description
 # Split the story up into pages, each with a couple lines of story and a brief image description.

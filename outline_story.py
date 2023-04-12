@@ -30,7 +30,7 @@ Ensure that the story has a clear message and a logical progression.
             messages=[
                 {"role": "user", "content": self.outline_prompt()},
             ],
-            n=3,
+            n=1,
             temperature=1,
         )
 
