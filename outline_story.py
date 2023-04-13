@@ -24,13 +24,13 @@ Follow a classic narrative structure: exposition, rising action, climax, falling
 Ensure that the story has a clear message and a logical progression.
 """
 
-    def outline(self):
+    def outline(self, n=1):
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "user", "content": self.outline_prompt()},
             ],
-            n=1,
+            n=n,
             temperature=1,
         )
 
