@@ -1,9 +1,8 @@
 import openai
 
 class Outliner:
-    def __init__(self, conditioning_info, title, premise):
+    def __init__(self, conditioning_info, premise):
         self.conditioning_info = conditioning_info
-        self.title = title
         self.premise = premise
 
     def outline_prompt(self):

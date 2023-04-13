@@ -10,6 +10,8 @@ from filter_ideas import filter_ideas
 from outline_story import Outliner
 from draft_story import Drafter
 
+from story_development.development_ga import DevelopmentGA
+
 def print_numbered_list(label, list):
     print(f"\n{label}:\n")
     for i, item in enumerate(list, start=1):
@@ -31,7 +33,7 @@ conditioning_info = sys.argv[1]
 print(f"Generating a story conditioned on:\n{conditioning_info}")
 
 # Come up with a bunch of ideas
-ideas = Ideation(conditioning_info).make_ideas(4)
+ideas = Ideation(conditioning_info).make_ideas(3)
 print_numbered_list("Generated ideas", ideas)
 
 # Find the best ideas
@@ -60,11 +62,10 @@ selected_idea = get_full_idea(ideas, selected_title)
 print(f"\nSelected idea:\n")
 print(selected_idea)
 
-outlines = Outliner(conditioning_info, selected_title, selected_idea).outline()
-print(f"\nPotential outlines:\n")
-print("\n\n========\n\n".join(outline for outline in outlines))
+ga = DevelopmentGA(conditioning_info, f"{selected_title}: {selected_idea}", 1)
+outline = ga.evolve(0, 1, 2)
 
-stories = Drafter(conditioning_info, outlines[0]).draft()
+stories = Drafter(conditioning_info, outline).draft()
 print(f"\nPotential stories:\n")
 print("\n\n========\n\n".join(story for story in stories))
 
