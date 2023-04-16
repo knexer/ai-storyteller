@@ -12,9 +12,18 @@ class DevelopmentGA(GeneticAlgorithmBase):
         self.conditioning_info = conditioning_info
         self.premise = premise
         self.feedback_cache = {}
-        self.role_setting = """I am an experienced editor of children's books. I like helping develop new ideas for children's stories.
-It's important to me that the stories have a meaningful moral, that the characters are interesting, and I try to include some educational components when it makes sense.
-My stories encourage diversity, inclusivity, and kindness."""
+        self.role_setting = """I am an experienced author and editor of children's books. I like helping new authors develop their ideas for children's stories.
+The best stories:
+- have memorable and relatable characters
+- have positive and empowering themes
+- are age appropriate
+- educate
+- have imaginative and creative story telling
+- encourage interactive reading
+- tell a focused story without getting distracted by extra fluff
+
+I'm a ruthless critic, because tough love helps new authors learn.
+My feedback is always specific and actionable."""
         GeneticAlgorithmBase.__init__(self, self.initialize_ideas(population_size))
 
     def initialize_ideas(self, population_size):
@@ -46,16 +55,16 @@ My stories encourage diversity, inclusivity, and kindness."""
         # Give the LLM the overall goal, the individual
         # Ask for overall feedback, specific positive points, specific negative points... give specific evaluation criteria?
         # Rephrase it to be more concise and structured in some specific way
-        feedback = self.call_api(f"""Here are some pre-writing notes for a story:
-
-{individual}
-
-I'm writing this story for a client who gave me a premise and some requirements:
+        feedback = self.call_api(f"""I'm writing a story for a client who gave me a premise and some requirements:
 {self.premise}
 {self.conditioning_info}
 
-Please give me some feedback so I can improve this story and impress my client.
-""")[0]
+Here are the notes I have so far:
+{individual}
+
+My client was underwhelmed, but they couldn't articulate why.
+You're an expert, and your cutting advice came highly recommended.
+Please tell me what I'm doing well and what I could do better. I need to improve this story to impress my client.""")[0]
         print("\n\nFeedback:\n\n")
         print(feedback)
         return feedback
@@ -63,36 +72,41 @@ Please give me some feedback so I can improve this story and impress my client.
     def compute_fitness(self, individual):
         # Given the individual plus concise feedback, score on 2-3 specific metrics
         # Synthesize those scores into an overall score
-        score = self.call_api(f"""Here are some pre-writing notes for a story:
-
-{individual}
-
-I'm writing this story for a client who gave me a premise and some requirements:
+        score = self.call_api(f"""I'm writing a story for a client who gave me a premise and some requirements:
 {self.premise}
 {self.conditioning_info}
+
+Here are the notes I have so far:
+{individual}
 
 I asked an expert about my notes and got this feedback:
 {self.feedback(individual)}
 
-Please score these notes between 1 and 10. Return only the number and no other text.
+Rate how extensive of changes this feedback asks for between 1 and 10, where:
+1 means "back to the drawing board"
+10 means "some details could be improved"
+Return only the number and no other text.
 """)[0]
         print("\n\nScore:\n\n")
         print(score)
         return int(score)
 
     def mutate(self, individual):
-        mutated = self.call_api(f"""Here are some pre-writing notes for a story:
+        mutated = self.call_api(f"""I'm writing a story for a client who gave me a premise and some requirements:
+{self.premise}
+{self.conditioning_info}
+
+Here are the story notes I have so far:
+======== Story Notes Begin ========
 
 {individual}
 
-I'm writing this story for a client who gave me a premise and some requirements:
-{self.premise}
-{self.conditioning_info}
+======== Story Notes End ========
 
 I asked an expert about my notes and got this feedback:
 {self.feedback(individual)})
 
-Please give me improved notes incorporating this feedback.
+Please rewrite my story notes to fix the issues identified in the feedback. Add new details if you need to.
 """)[0]
         print("\n\nRevised:\n\n")
         print(mutated)
