@@ -62,7 +62,13 @@ selected_idea = get_full_idea(ideas, selected_title)
 print(f"\nSelected idea:\n")
 print(selected_idea)
 
-ga = DevelopmentGA(conditioning_info, f"{selected_title}: {selected_idea}", 1)
+premise = f"{selected_title}: {selected_idea}"
+outliner = Outliner(conditioning_info, premise)
+initial_ideas = outliner.outline(1)
+print("\n\nNotes:\n\n")
+print(initial_ideas[0])
+
+ga = DevelopmentGA(conditioning_info, premise, initial_ideas)
 outline = ga.evolve(0, 1, 2)
 
 stories = Drafter(conditioning_info, outline).draft()

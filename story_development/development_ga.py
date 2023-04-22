@@ -8,7 +8,7 @@ from outline_story import Outliner
 # Branch off from that one to implement the other methods
 # feedback should be memoized, naturally.
 class DevelopmentGA(GeneticAlgorithmBase):
-    def __init__(self, conditioning_info, premise, population_size):
+    def __init__(self, conditioning_info, premise, inital_ideas):
         self.conditioning_info = conditioning_info
         self.premise = premise
         self.feedback_cache = {}
@@ -24,21 +24,17 @@ The best stories:
 
 I'm a ruthless critic, because tough love helps new authors learn.
 My feedback is always specific and actionable."""
-        GeneticAlgorithmBase.__init__(self, self.initialize_ideas(population_size))
-
-    def initialize_ideas(self, population_size):
-        outliner = Outliner(self.conditioning_info, self.premise)
-        population = outliner.outline(population_size)
-        print("\n\nNotes:\n\n")
-        print(population[0])
-        return population
+        GeneticAlgorithmBase.__init__(self, inital_ideas)
 
     def feedback(self, individual):
         if individual not in self.feedback_cache:
             self.feedback_cache[individual] = self.get_feedback(individual)
         return self.feedback_cache[individual]
     
-    def call_api(self, prompt, n=1):
+    def call_api(self, prompt, verbose=False, n=1):
+        if verbose:
+            print(self.role_setting)
+            print(prompt)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -48,10 +44,13 @@ My feedback is always specific and actionable."""
             n=n,
             temperature=1,
         )
+
+        if verbose:
+            [print(choice.message.content) for choice in response.choices]
         
         return [choice.message.content for choice in response.choices]
     
-    def get_feedback(self, individual):
+    def get_feedback(self, individual, verbose = False):
         # Give the LLM the overall goal, the individual
         # Ask for overall feedback, specific positive points, specific negative points... give specific evaluation criteria?
         # Rephrase it to be more concise and structured in some specific way
@@ -64,7 +63,7 @@ Here are the notes I have so far:
 
 My client was underwhelmed, but they couldn't articulate why.
 You're an expert, and your cutting advice came highly recommended.
-Please tell me what I'm doing well and what I could do better. I need to improve this story to impress my client.""")[0]
+Please tell me what I'm doing well and what I could do better. I need to improve this story to impress my client.""", verbose)[0]
         print("\n\nFeedback:\n\n")
         print(feedback)
         return feedback
