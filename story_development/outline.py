@@ -18,3 +18,6 @@ class Outline(Category):
 - Pacing: Is ruthlessly edited and engagingly paced; every event is critical to the story
 - Narrative consistency: Follows a logical progression, with no plot holes, non sequitors, or unfulfilled promises
 - Character-driven: Drives plot by the actions decisions of characters, not external events or coincidences"""
+
+    def recommendations_reminder(self):
+        return """Remember that eliminating or combining redundant events, refocusing on the central conflict, and simplifying concepts for the target audience are often important too, not only adding more things. Don't be afraid to recommend big changes. Finally, remember that this is just an outline, so focus on the core elements of the plot; descriptive language will happen later."""

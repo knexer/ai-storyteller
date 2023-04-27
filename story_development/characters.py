@@ -18,3 +18,6 @@ class Characters(Category):
 - Be relatable for the target audience
 - Have clear motivations, goals, and, for the main characters, growth
 - Have age-appropriate complexity and depth"""
+
+    def recommendations_reminder(self):
+        return """Remember that combining characters, distilling overly complex characters, and simplifying for the target audience are often important too, not only adding things. Don't be afraid to recommend big changes."""

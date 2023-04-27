@@ -17,3 +17,6 @@ class Themes(Category):
 - Clearly shown by and well-explored in the events of the story
 - Positive, empowering, and educational
 - Respectful of diversity, avoiding stereotypes and cultural insensitivity"""
+
+    def recommendations_reminder(self):
+        return """Remember that combining themes, distilling overly complex themes, and simplifying for the target audience are often important too, not only adding things. Don't be afraid to recommend big changes."""

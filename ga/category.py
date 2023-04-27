@@ -18,6 +18,11 @@ class Category:
     def rubric(self):
         raise NotImplementedError("Derived classes must define the rubric")
 
+    def recommendations_reminder(self):
+        raise NotImplementedError(
+            "Derived classes must define the recommendations reminder"
+        )
+
     def scoring_prompt(self):
         return f"""I'm working on an illustrated children's story for a client.
 They gave me a premise:
@@ -67,8 +72,13 @@ End your review with "Overall Score: <sum of item scores>/{self.best_possible_sc
             _, replacements = self.score(verbose, n - actual)
             scores.extend(replacements)
 
-        average_score = sum([int(score["score"]) for score in scores]) / len(scores)
-        return average_score, scores
+        self.scores = scores
+
+    def average_score(self):
+        return sum([int(score["score"]) for score in self.scores]) / len(self.scores)
+
+    def normalized_score(self):
+        return self.average_score() / self.best_possible_score()
 
     def parse_score(self, prompt, response):
         score_regex = re.compile(
@@ -88,5 +98,80 @@ End your review with "Overall Score: <sum of item scores>/{self.best_possible_sc
                 {"role": "assistant", "content": response},
             ],
             "score": overall_score,
-            "best_possible": self.best_possible_score(),
         }
+
+    def recommendations_prompt(self):
+        return f"""Based on your feedback, give three detailed recommendations for how to improve the outline.
+Each recommendation should solve a problem highlighted above and specify every detail on what should be changed and how. DO NOT list multiple alternative, options, or examples; give one detailed, concrete solution.
+Multiple recommendations can target one problem.
+
+{self.recommendations_reminder()}
+
+Give your recommendations in a numbered list format. Omit preface, omit a summary, and omit other notes; include only the list itself."""
+
+    def make_recommendations(self, num_recommendations, verbose=False):
+        # Pick the num_recommendations worst scores to improve on
+        worst_scores = sorted(self.scores, key=lambda score: score["score"])[
+            :num_recommendations
+        ]
+
+        # Make recommendations for each score
+        recommendations = []
+        for score in worst_scores:
+            recommendations += self.make_recommendations_from_score(score, verbose)
+
+        self.recommendations = recommendations
+        return recommendations
+
+    def make_recommendations_from_score(self, score, verbose=False):
+        prompt = self.recommendations_prompt()
+        if verbose:
+            print(prompt)
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=score["conversation"] + [{"role": "user", "content": prompt}],
+            n=1,
+            temperature=1,
+        )
+        if verbose:
+            print(response.choices[0].message.content)
+        recommendations = self.parse_recommendations(
+            response.choices[0].message.content
+        )
+        if len(recommendations) != 3:
+            print(
+                f"WARNING: Could not parse recommendations from response:\n{response.choices[0].message.content}\nRetrying..."
+            )
+            recommendations = self.make_recommendations_from_score(score)
+
+        return recommendations
+
+    def parse_recommendations(self, response):
+        # Response is a string with a numbered list of recommendations
+
+        # Match the start of each list element
+        # Regex explanation:
+        # ^(\d+) - Match a number at the start of a line
+        # [^\w\n] - Match a non-word character (e.g. a period, colon, or close parenthesis)
+        matches = re.finditer(r"^(\d+)[^\w\n]", response, re.MULTILINE)
+
+        # Extract indices and sort them
+        indices = [match.start() for match in matches]
+        indices.append(len(response))
+        indices.sort()
+
+        # Extract items using indices
+        items = [
+            response[indices[i] : indices[i + 1]].strip()
+            for i in range(len(indices) - 1)
+        ]
+
+        # Remove the number, punctuation, and leading whitespace from each item
+        items = [
+            re.sub(r"^\d+[^\w\n]\s*", "", item, flags=re.MULTILINE) for item in items
+        ]
+
+        if len(items) != 3:
+            return []
+
+        return items

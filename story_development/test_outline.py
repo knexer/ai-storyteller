@@ -50,3 +50,5 @@ Resolution:
 - The story ends with Juan and Abuela sitting in the butterfly garden, watching the beautiful creatures flutter around them, feeling grateful for all that they have learned."""
 outline = Outline(conditioning_info, premise, outline)
 outline.score(verbose=True, n=3)
+recommendations = outline.make_recommendations(1, verbose=True)
+[print(recommendation) for recommendation in recommendations]
