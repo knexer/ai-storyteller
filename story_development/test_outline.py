@@ -3,7 +3,7 @@ import openai
 import os
 from dotenv import load_dotenv
 
-from story_development.outline import score
+from story_development.outline import Outline
 
 load_dotenv()
 openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -48,4 +48,5 @@ Falling Action:
 Resolution:
 - Juan returns home and shows Abuela all that he has learned while caring for the butterflies. He promises to protect and respect them, and never harm them again.
 - The story ends with Juan and Abuela sitting in the butterfly garden, watching the beautiful creatures flutter around them, feeling grateful for all that they have learned."""
-score(conditioning_info, premise, outline, verbose=True, n=3)
+outline = Outline(conditioning_info, premise, outline)
+outline.score(verbose=True, n=3)
