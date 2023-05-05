@@ -23,8 +23,6 @@ class Individual:
         return sum(category.best_possible_score() for category in self.categories)
 
     def make_recommendation(self, verbose=False):
-        # todo: do weighted random, but only pick one category and only get one recommendation from that category
-
         num_missing_points = self.best_possible_score() - self.total_score()
 
         # Pick a category to improve on, weighted by how many points they're missing
@@ -34,6 +32,37 @@ class Individual:
         for category in self.categories:
             current += category.best_possible_score() - category.average_score()
             if current > missing_point:
-                return category.make_recommendation(verbose=verbose)
+                return category, category.make_recommendation(verbose=verbose)
 
-    # def apply_recommendation(self, recommendation, verbose=False):
+    def apply_recommendation(self, category, recommendation, verbose=False):
+        # Given the premise, conditioning info, and notes, apply the recommendation to make new notes
+        prompt = category.apply_recommendation_prompt(recommendation)
+        if verbose:
+            print(prompt)
+        application = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            n=1,
+            temperature=1,
+        )
+        if verbose:
+            print(application.choices[0].message.content)
+
+        revised_notes_begin = "====== REVISED NOTES ======"
+        revised_notes_end = "====== END REVISED NOTES ======"
+
+        # Extract the revised notes from the response
+        revised_notes = (
+            application.choices[0]
+            .message.content.split(revised_notes_begin)[1]
+            .split(revised_notes_end)[0]
+        )
+
+        # Sanity check: make sure the revised notes are different from the original notes, and long enough to maybe be notes
+        if (
+            revised_notes == category.notes
+            or len(revised_notes) < len(category.notes) / 2
+        ):
+            return self.apply_recommendation(category, recommendation, verbose=verbose)
+
+        return revised_notes

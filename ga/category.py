@@ -148,3 +148,22 @@ Give your recommendations in a numbered list format. Omit preface, omit a summar
             print(best_recommendation.choices[0].message.content)
 
         return best_recommendation.choices[0].message.content
+
+    def apply_recommendation_prompt(self, recommendation):
+        return f"""I'm working on an illustrated children's story for a client.
+They gave me a premise:
+{self.premise}
+They gave me other requirements:
+{self.conditioning_info}
+
+I have elaborated on the premise, producing these notes:
+====== ORIGINAL NOTES ======
+{self.notes}
+====== END ORIGINAL NOTES ======
+
+I received this feedback on the story's {self.category_name()}:
+{recommendation}
+
+Revise the notes to incorporate this feedback.
+Begin your response by strategizing how you will change the story notes based on the feedback. In addition to an overall plan, also carefully identify and resolve ambiguity in the recommendation. How are other aspects of the story impacted by the recommendation? Is there anything the recommendation doesn't specify adequately? Resolve that ambiguity before starting the revised notes, to ensure they are self-consistent, specific and fully meet the recommendation's objective.
+Then write your revised notes, wrapped in "====== REVISED NOTES ======" and "====== END REVISED NOTES ======"."""
