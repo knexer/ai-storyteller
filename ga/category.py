@@ -1,5 +1,6 @@
 import openai
 
+import random
 import re
 
 
@@ -42,12 +43,13 @@ Follow the list structure of the rubric. For each item, discuss things the story
 End your review with "Overall Score: <sum of item scores>/{self.best_possible_score()}"."""
 
     def score(self, verbose=False, n=1):
+        self.scores = []
         prompt = self.scoring_prompt()
         if verbose:
             print(prompt)
 
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4",
             messages=[
                 {"role": "user", "content": prompt},
             ],
@@ -69,10 +71,9 @@ End your review with "Overall Score: <sum of item scores>/{self.best_possible_sc
             print(
                 f"WARNING: Only {actual} scores could be parsed of the {n} responses."
             )
-            _, replacements = self.score(verbose, n - actual)
-            scores.extend(replacements)
+            self.score(verbose, n - actual)
 
-        self.scores = scores
+        self.scores.extend(scores)
 
     def average_score(self):
         return sum([int(score["score"]) for score in self.scores]) / len(self.scores)
@@ -90,7 +91,7 @@ End your review with "Overall Score: <sum of item scores>/{self.best_possible_sc
             print(f"WARNING: Could not parse score from response: {response}")
             return None
 
-        overall_score = match.group(1)
+        overall_score = int(match.group(1))
 
         return {
             "conversation": [
@@ -101,77 +102,49 @@ End your review with "Overall Score: <sum of item scores>/{self.best_possible_sc
         }
 
     def recommendations_prompt(self):
-        return f"""Based on your feedback, give three detailed recommendations for how to improve the outline.
-Each recommendation should solve a problem highlighted above and specify every detail on what should be changed and how. DO NOT list multiple alternative, options, or examples; give one detailed, concrete solution.
-Multiple recommendations can target one problem.
+        return f"""Based on your feedback, give three independent, detailed recommendations for how to improve the outline.
+Each recommendation should solve a problem highlighted above and specify every detail on what should be changed and how. DO NOT list multiple alternatives, options, or examples; give one detailed, concrete solution.
+Each recommendation should be independent of the others, as they will be evaluated separately.
 
 {self.recommendations_reminder()}
 
 Give your recommendations in a numbered list format. Omit preface, omit a summary, and omit other notes; include only the list itself."""
 
-    def make_recommendations(self, num_recommendations, verbose=False):
-        # Pick the num_recommendations worst scores to improve on
-        worst_scores = sorted(self.scores, key=lambda score: score["score"])[
-            :num_recommendations
-        ]
+    def make_recommendation(self, verbose=False):
+        # Choose a score to improve on, weighted by mismatch between score and best possible score
+        num_missing_points = self.best_possible_score() * len(self.scores) - sum(
+            [score["score"] for score in self.scores]
+        )
+        missing_point = random.uniform(0, num_missing_points)
+        current = 0
+        for score in self.scores:
+            current += self.best_possible_score() - score["score"]
+            if current > missing_point:
+                return self.make_recommendation_from_score(score, verbose)
 
-        # Make recommendations for each score
-        recommendations = []
-        for score in worst_scores:
-            recommendations += self.make_recommendations_from_score(score, verbose)
-
-        self.recommendations = recommendations
-        return recommendations
-
-    def make_recommendations_from_score(self, score, verbose=False):
+    def make_recommendation_from_score(self, score, verbose=False):
         prompt = self.recommendations_prompt()
         if verbose:
             print(prompt)
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+        recommendations = openai.ChatCompletion.create(
+            model="gpt-4",
             messages=score["conversation"] + [{"role": "user", "content": prompt}],
             n=1,
             temperature=1,
         )
         if verbose:
-            print(response.choices[0].message.content)
-        recommendations = self.parse_recommendations(
-            response.choices[0].message.content
+            print(recommendations.choices[0].message.content)
+        pick_best_prompt = "Which of those is the best recommendation? Repeat the recommendation, without the number and without any other preface text."
+        best_recommendation = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=score["conversation"]
+            + [{"role": "user", "content": prompt}]
+            + [recommendations.choices[0].message]
+            + [{"role": "user", "content": pick_best_prompt}],
+            n=1,
+            temperature=1,
         )
-        if len(recommendations) != 3:
-            print(
-                f"WARNING: Could not parse recommendations from response:\n{response.choices[0].message.content}\nRetrying..."
-            )
-            recommendations = self.make_recommendations_from_score(score)
+        if verbose:
+            print(best_recommendation.choices[0].message.content)
 
-        return recommendations
-
-    def parse_recommendations(self, response):
-        # Response is a string with a numbered list of recommendations
-
-        # Match the start of each list element
-        # Regex explanation:
-        # ^(\d+) - Match a number at the start of a line
-        # [^\w\n] - Match a non-word character (e.g. a period, colon, or close parenthesis)
-        matches = re.finditer(r"^(\d+)[^\w\n]", response, re.MULTILINE)
-
-        # Extract indices and sort them
-        indices = [match.start() for match in matches]
-        indices.append(len(response))
-        indices.sort()
-
-        # Extract items using indices
-        items = [
-            response[indices[i] : indices[i + 1]].strip()
-            for i in range(len(indices) - 1)
-        ]
-
-        # Remove the number, punctuation, and leading whitespace from each item
-        items = [
-            re.sub(r"^\d+[^\w\n]\s*", "", item, flags=re.MULTILINE) for item in items
-        ]
-
-        if len(items) != 3:
-            return []
-
-        return items
+        return best_recommendation.choices[0].message.content
