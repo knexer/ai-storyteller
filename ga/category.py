@@ -38,9 +38,9 @@ Critique this story's {self.category_name()} based on this rubric.
 
 {self.rubric()}
 
-Follow the list structure of the rubric. For each item, discuss things the story's {self.category_name()} do well and things they do poorly in that dimension, then lastly score that item out of 5. Be as harsh as possible!
+Follow the list structure of the rubric. For each item, discuss things the story's {self.category_name()} do well and things they do poorly in that respect, then lastly score that item out of 5. Be as harsh as possible!
 
-End your review with "Overall Score: <sum of item scores>/{self.best_possible_score()}"."""
+End your review with "Overall Score: <sum of item scores>/{self.best_possible_score()}". N/A for any item should count as a 5."""
 
     def score(self, verbose=False, n=1):
         self.scores = []
@@ -49,7 +49,7 @@ End your review with "Overall Score: <sum of item scores>/{self.best_possible_sc
             print(prompt)
 
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "user", "content": prompt},
             ],
@@ -75,6 +75,9 @@ End your review with "Overall Score: <sum of item scores>/{self.best_possible_sc
 
         self.scores.extend(scores)
 
+    def is_scored(self):
+        return hasattr(self, "scores")
+
     def average_score(self):
         return sum([int(score["score"]) for score in self.scores]) / len(self.scores)
 
@@ -83,7 +86,8 @@ End your review with "Overall Score: <sum of item scores>/{self.best_possible_sc
 
     def parse_score(self, prompt, response):
         score_regex = re.compile(
-            "Overall Score: (\d{1,2})/" + f"{self.best_possible_score()}"
+            r"Overall Score:\s*(\d{1,2}(?:\.\d{1,2})?)/"
+            + f"{self.best_possible_score()}"
         )
         match = score_regex.search(response)
 
@@ -91,7 +95,7 @@ End your review with "Overall Score: <sum of item scores>/{self.best_possible_sc
             print(f"WARNING: Could not parse score from response: {response}")
             return None
 
-        overall_score = int(match.group(1))
+        overall_score = float(match.group(1))
 
         return {
             "conversation": [
@@ -127,7 +131,7 @@ Give your recommendations in a numbered list format. Omit preface, omit a summar
         if verbose:
             print(prompt)
         recommendations = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=score["conversation"] + [{"role": "user", "content": prompt}],
             n=1,
             temperature=1,
@@ -136,7 +140,7 @@ Give your recommendations in a numbered list format. Omit preface, omit a summar
             print(recommendations.choices[0].message.content)
         pick_best_prompt = "Which of those is the best recommendation? Repeat the recommendation, without the number and without any other preface text."
         best_recommendation = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=score["conversation"]
             + [{"role": "user", "content": prompt}]
             + [recommendations.choices[0].message]

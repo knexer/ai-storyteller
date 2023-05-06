@@ -5,23 +5,28 @@ import random
 
 num_voters = 6
 
+
 def filter_ideas(ideas, criteria):
     all_ideas = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # Use a list comprehension to create a list of two Future objects
-        future_list = [executor.submit(pick_five, ideas, criteria) for _ in range(num_voters)]
+        future_list = [
+            executor.submit(pick_five, ideas, criteria) for _ in range(num_voters)
+        ]
 
         # As the futures complete, extend `all_ideas` with their results
         for future in concurrent.futures.as_completed(future_list):
             all_ideas.extend(future.result())
 
     counts = [(idea, all_ideas.count(idea)) for idea in set(all_ideas)]
-    sorted_by_votes = sorted(counts, key=lambda x:x[1], reverse=True)
+    sorted_by_votes = sorted(counts, key=lambda x: x[1], reverse=True)
 
     return sorted_by_votes
 
+
 def format_ideas(ideas):
-    return "\n".join([f'{i}. {idea}' for i, idea in enumerate(ideas, start=1)])
+    return "\n".join([f"{i}. {idea}" for i, idea in enumerate(ideas, start=1)])
+
 
 def pick_five(ideas, criteria):
     shuffled_ideas = ideas
@@ -46,10 +51,13 @@ Pick the five {criteria}."""
     five_titles_list = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-        {"role": "user", "content": prompt},
-        unformatted_five_ideas.choices[0].message,
-        {"role": "user", "content": """Reformat the titles of your chosen five ideas into a json list format.
-Output json ONLY - your output will be directly parsed so it must have NO other text such as a preamble."""}
+            {"role": "user", "content": prompt},
+            unformatted_five_ideas.choices[0].message,
+            {
+                "role": "user",
+                "content": """Reformat the titles of your chosen five ideas into a json list format.
+Output json ONLY - your output will be directly parsed so it must have NO other text such as a preamble.""",
+            },
         ],
         n=1,
         temperature=0,

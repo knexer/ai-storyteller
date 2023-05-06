@@ -1,11 +1,12 @@
 import re
 import openai
 
+
 def parse_ideas(texts):
     # The regular expression pattern:
     # It looks for a number followed by a '.', ':', or ')' (with optional spaces)
     # and then captures any text until it finds a newline character or the end of the string
-    pattern = re.compile(r'\d[\.\:\)]\s*(.*?)(?=\n\d|$)', re.MULTILINE)
+    pattern = re.compile(r"\d[\.\:\)]\s*(.*?)(?=\n\d|$)", re.MULTILINE)
 
     # Find all matches using the 'findall' method
     matches = []
@@ -14,6 +15,7 @@ def parse_ideas(texts):
 
     # Return the matches
     return matches
+
 
 class Ideation:
     def __init__(self, conditioning_info):

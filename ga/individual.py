@@ -7,9 +7,19 @@ class Individual:
     def __init__(self, categories):
         self.categories = categories
 
+    def get_notes(self):
+        return self.categories[0].notes
+
+    def is_scored(self):
+        return all(category.is_scored() for category in self.categories)
+
     def score(self, verbose=False, n=3):
         for category in self.categories:
+            print(f"====== Scoring {category.category_name()} ======")
             category.score(verbose=verbose, n=n)
+            print(
+                f"Average score for {category.category_name()}: {category.average_score()}/{category.best_possible_score()}"
+            )
 
     def total_score(self):
         return sum(category.average_score() for category in self.categories)
@@ -40,7 +50,7 @@ class Individual:
         if verbose:
             print(prompt)
         application = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             n=1,
             temperature=1,

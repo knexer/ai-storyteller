@@ -1,5 +1,6 @@
 import openai
 
+
 class Drafter:
     def __init__(self, conditioning_info, outline):
         self.conditioning_info = conditioning_info
@@ -23,7 +24,7 @@ Compose a rough draft of the book itself. Your draft should be a sequence of pag
             messages=[
                 {"role": "user", "content": self.draft_prompt()},
             ],
-            n=1,
+            n=2,
             temperature=1,
         )
 
