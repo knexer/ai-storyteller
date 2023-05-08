@@ -37,11 +37,18 @@ class LLMTask(Task):
         return self.output_parser(response)
 
     async def api_call(self, messages):
+        # make sure messages is a list of objects with role and content keys
+        if not isinstance(messages, list):
+            if isinstance(messages, str):
+                messages = {"role": "user", "content": messages}
+            messages = [messages]
+
         # Todo: handle api calls elsewhere for request batching and retries
         response = await openai.ChatCompletion.acreate(
             messages=messages,
             **self.params,
         )
+        # Todo: handle n > 1
         return response.choices[0].message.content
 
 
@@ -58,9 +65,10 @@ class PythonTask(Task):
 
 
 class TaskGraphTask(Task):
-    def __init__(self, subgraph, dependencies=None):
+    def __init__(self, subgraph, input_formatter=lambda x: x, dependencies=None):
         super().__init__(dependencies)
         self.subgraph = subgraph
+        self.input_formatter = input_formatter
 
     async def execute(self, dependency_results):
-        return await self.subgraph.run(dependency_results)
+        return await self.subgraph.run(self.input_formatter(dependency_results))

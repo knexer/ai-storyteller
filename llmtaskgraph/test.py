@@ -14,10 +14,7 @@ openai.api_key = os.environ["OPENAI_API_KEY"]
 
 
 def prompt(_):
-    return [
-        {
-            "role": "user",
-            "content": f"""You are an AI storybook writer. You write engaging, creative, and highly diverse content for illustrated books for children.
+    return """You are an AI storybook writer. You write engaging, creative, and highly diverse content for illustrated books for children.
 The first step in your process is ideation - workshop a bunch of ideas and find the ones with that special spark.
 
 Your client has provided some constraints for you to satisfy, but within those constraints you have total artistic control, so get creative with it!
@@ -30,9 +27,7 @@ Here's an example of a successful premise:
 
 
 Come up with a numbered list of eight of your best ideas. Focus on variety within the scope of the client's requests.
-""",
-        }
-    ]
+"""
 
 
 def parse_ideas(response):
@@ -68,7 +63,7 @@ llm_tasks = [
 [task_graph.add_task(task) for task in llm_tasks]
 
 join_task = PythonTask(join_ideas, [task.task_id for task in llm_tasks])
-task_graph.add_task(join_task, True)
+task_graph.add_output_task(join_task)
 
 nested_task_ran = False
 

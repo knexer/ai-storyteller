@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 
 
 class TaskGraph:
@@ -6,18 +7,16 @@ class TaskGraph:
         self.tasks = {}
         self.output_task = None
 
-    def add_task(self, task, is_output_task=False):
+    def add_task(self, task):
         for dependency in task.dependencies:
             if dependency not in self.tasks:
                 raise ValueError(f"Dependency {dependency} not found in task graph")
 
         self.tasks[task.task_id] = task
-        if is_output_task:
-            self.set_output_task(task.task_id)
+        return task.task_id
 
-    def set_output_task(self, task_id):
-        if task_id not in self.tasks:
-            raise ValueError(f"Task {task_id} not found in task graph")
+    def add_output_task(self, task):
+        task_id = self.add_task(task)
 
         self.output_task = task_id
 
@@ -27,10 +26,9 @@ class TaskGraph:
         task_finished = asyncio.Event()
 
         async def execute_task(task):
-            if len(task.dependencies) == 0 and input is not None:
-                task_input = {"0": input}
-            else:
-                task_input = {dep: self.tasks[dep].output for dep in task.dependencies}
+            task_input = {dep: self.tasks[dep].output for dep in task.dependencies}
+            if input is not None:
+                task_input["global"] = input
 
             try:
                 await task.run(task_input)
@@ -73,8 +71,18 @@ class TaskGraph:
                 # Wait for coroutines to complete cancellation
                 await asyncio.gather(*task_coros, return_exceptions=True)
 
+                def format_error(error):
+                    return "".join(
+                        traceback.format_exception(
+                            type(error), error, error.__traceback__
+                        )
+                    )
+
                 raise Exception(
-                    "Some tasks in the TaskGraph encountered errors: ", errors
+                    "\n".join(
+                        ["Some tasks in the TaskGraph encountered errors: "]
+                        + ["".join(format_error(error)) for error in errors],
+                    )
                 )
 
             return self.tasks[self.output_task].output
