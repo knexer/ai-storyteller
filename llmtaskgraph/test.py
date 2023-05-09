@@ -14,23 +14,12 @@ openai.api_key = os.environ["OPENAI_API_KEY"]
 
 
 def prompt(_):
-    return """You are an AI storybook writer. You write engaging, creative, and highly diverse content for illustrated books for children.
-The first step in your process is ideation - workshop a bunch of ideas and find the ones with that special spark.
-
-Your client has provided some constraints for you to satisfy, but within those constraints you have total artistic control, so get creative with it!
-Client constraints:
-target audience is a 5 year old boy.The story should help the reader overcome a fear of butterflies.
-
-Each idea should have a title and a 2-3 sentence premise mentioning the protagonist, the setting, and the conflict, while also highlighting what makes the story interesting.
-Here's an example of a successful premise:
-“Romeo and Juliet": Two teens, Romeo and Juliet, pursue their forbidden love with each other—to the chagrin of their rival families. When Juliet must choose between her family and her heart, both lovers must find a way to stay united, even if fate won't allow it.
-
-
-Come up with a numbered list of eight of your best ideas. Focus on variety within the scope of the client's requests.
-"""
+    print("ran prompt")
+    return "Give a numbered list of five fast food items."
 
 
 def parse_ideas(response):
+    print("ran parse_ideas")
     # The regular expression pattern:
     # It looks for a number followed by a '.', ':', or ')' (with optional spaces)
     # and then captures any text until it finds a newline character or the end of the string
@@ -43,16 +32,13 @@ def parse_ideas(response):
     return matches
 
 
-def join_ideas(ideas):
+def join_ideas(_, *ideas):
+    print("ran join_ideas")
     # ideas is a map from task id to an array of ideas
     all_ideas = []
-    for _, ideas in ideas.items():
+    for ideas in ideas:
         all_ideas = all_ideas + ideas
     return all_ideas
-
-
-def pick_five_ideas(ideas):
-    return random.shuffle(ideas.items()[0])[:5]
 
 
 task_graph = TaskGraph()
@@ -60,9 +46,11 @@ llm_tasks = [
     LLMTask(prompt, {"model": "gpt-3.5-turbo", "n": 1, "temperature": 1}, parse_ideas)
     for _ in range(3)
 ]
-[task_graph.add_task(task) for task in llm_tasks]
 
-join_task = PythonTask(join_ideas, [task.task_id for task in llm_tasks])
+for task in llm_tasks:
+    task_graph.add_task(task)
+
+join_task = PythonTask(join_ideas, *llm_tasks)
 task_graph.add_output_task(join_task)
 
 nested_task_ran = False
@@ -70,6 +58,8 @@ nested_task_ran = False
 
 # create a task that creates other tasks
 def add_nested_task(_):
+    print("ran add_nested_task")
+
     def nested_task(_):
         global nested_task_ran
         nested_task_ran = True
@@ -89,11 +79,11 @@ def throw_exception(_):
     raise Exception("test exception")
 
 
-# task_graph.add_task(PythonTask(throw_exception))
+task_graph.add_task(PythonTask(throw_exception))
 
+print("running task graph")
+output = asyncio.run(task_graph.run())
 
-asyncio.run(task_graph.run())
-
-print(join_task.output)
+print(output)
 
 assert nested_task_ran

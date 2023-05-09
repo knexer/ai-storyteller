@@ -1,37 +1,48 @@
 from abc import ABC, abstractmethod
+from asyncio import Future
+import asyncio
 import inspect
 from uuid import uuid4
 import openai
 
 
 class Task(ABC):
-    def __init__(self, dependencies=None):
+    def __init__(self, *deps, **kwdeps):
         self.task_id = str(uuid4())
-        self.dependencies = dependencies or []
+        self.deps = deps
+        self.kwdeps = kwdeps
         self.output = None
         self.error = None
 
-    async def run(self, dependency_results):
-        if self.output is None:
-            self.output = await self.execute(dependency_results)
-        if self.output is None:
-            raise ValueError(f"Task {self.task_id} did not produce an output.")
-        return self.output
+    @property
+    def dependencies(self):
+        return self.deps + tuple(self.kwdeps.values())
+
+    async def start(self, graph_input):
+        dep_results = [await dep.output for dep in self.deps]
+        kwdep_results = {
+            kwdep_name: await kwdep.output for kwdep_name, kwdep in self.kwdeps.items()
+        }
+        self.output = asyncio.create_task(
+            self.execute(graph_input, *dep_results, **kwdep_results)
+        )
 
     @abstractmethod
-    async def execute(self, dependency_results):
+    async def execute(self, graph_input, *dep_results, **kwdep_results):
         pass
 
 
 class LLMTask(Task):
-    def __init__(self, prompt_formatter, params, output_parser, dependencies=None):
-        super().__init__(dependencies)
+    def __init__(self, prompt_formatter, params, output_parser, *deps, **kwdeps):
+        super().__init__(*deps, **kwdeps)
         self.prompt_formatter = prompt_formatter
         self.params = params
         self.output_parser = output_parser
 
-    async def execute(self, dependency_results):
-        formatted_prompt = self.prompt_formatter(dependency_results)
+    async def execute(self, graph_input, *dep_results, **kwdep_results):
+        formatted_prompt = self.prompt_formatter(
+            graph_input, *dep_results, **kwdep_results
+        )
         response = await self.api_call(formatted_prompt)
         # Todo: retry api call and parsing if output is None
         return self.output_parser(response)
@@ -53,22 +64,24 @@ class LLMTask(Task):
 
 
 class PythonTask(Task):
-    def __init__(self, callback, dependencies=None):
-        super().__init__(dependencies)
+    def __init__(self, callback, *deps, **kwdeps):
+        super().__init__(*deps, **kwdeps)
         self.callback = callback
 
-    async def execute(self, dependency_results):
+    async def execute(self, graph_input, *dep_results, **kwdep_results):
         if inspect.iscoroutinefunction(self.callback):
-            return await self.callback(dependency_results)
+            return await self.callback(graph_input, *dep_results, **kwdep_results)
         else:
-            return self.callback(dependency_results)
+            return self.callback(graph_input, *dep_results, **kwdep_results)
 
 
 class TaskGraphTask(Task):
-    def __init__(self, subgraph, input_formatter=lambda x: x, dependencies=None):
-        super().__init__(dependencies)
+    def __init__(self, subgraph, input_formatter, *deps, **kwdeps):
+        super().__init__(*deps, **kwdeps)
         self.subgraph = subgraph
         self.input_formatter = input_formatter
 
-    async def execute(self, dependency_results):
-        return await self.subgraph.run(self.input_formatter(dependency_results))
+    async def execute(self, graph_input, *dep_results, **kwdep_results):
+        return await self.subgraph.run(
+            self.input_formatter(graph_input, *dep_results, **kwdep_results)
+        )
