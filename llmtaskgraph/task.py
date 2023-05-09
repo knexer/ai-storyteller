@@ -1,13 +1,15 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from asyncio import Future
 import asyncio
 import inspect
+from typing import Any
 from uuid import uuid4
 import openai
 
 
 class Task(ABC):
-    def __init__(self, *deps, **kwdeps):
+    def __init__(self, *deps: tuple[Task], **kwdeps: dict[str, Task]):
         self.task_id = str(uuid4())
         self.deps = deps
         self.kwdeps = kwdeps
@@ -15,10 +17,10 @@ class Task(ABC):
         self.error = None
 
     @property
-    def dependencies(self):
+    def dependencies(self) -> tuple[Task]:
         return self.deps + tuple(self.kwdeps.values())
 
-    async def start(self, graph_input):
+    async def start(self, graph_input: Any) -> None:
         dep_results = [await dep.output for dep in self.deps]
         kwdep_results = {
             kwdep_name: await kwdep.output for kwdep_name, kwdep in self.kwdeps.items()
@@ -28,7 +30,12 @@ class Task(ABC):
         )
 
     @abstractmethod
-    async def execute(self, graph_input, *dep_results, **kwdep_results):
+    async def execute(
+        self,
+        graph_input: Any,
+        *dep_results: tuple[Any],
+        **kwdep_results: dict[str, Any],
+    ):
         pass
 
 
