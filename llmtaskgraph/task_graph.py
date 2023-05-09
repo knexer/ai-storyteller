@@ -1,15 +1,17 @@
 import asyncio
-import traceback
+from typing import Any, Optional
+
+from llmtaskgraph.task import Task
 
 
 class TaskGraph:
     def __init__(self):
         self.tasks = []
         self.started = False
-        self.graph_input = None
-        self.output_task = None
+        self.graph_input: Optional[Any] = None
+        self.output_task: Optional[Task] = None
 
-    def add_task(self, task):
+    def add_task(self, task: Task):
         for dependency in task.dependencies:
             if dependency not in self.tasks:
                 raise ValueError(f"Dependency {dependency} not found in task graph")
@@ -20,12 +22,12 @@ class TaskGraph:
 
         return task.task_id
 
-    def add_output_task(self, task):
+    def add_output_task(self, task: Task):
         self.add_task(task)
         self.output_task = task
         return task.task_id
 
-    async def run(self, graph_input=None):
+    async def run(self, graph_input: Optional[Any] = None) -> Any:
         self.started = True
         self.graph_input = graph_input
         # Start all initially available tasks.

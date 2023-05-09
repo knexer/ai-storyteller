@@ -3,9 +3,14 @@ from abc import ABC, abstractmethod
 from asyncio import Future
 import asyncio
 import inspect
-from typing import Any
+from typing import Any, Optional
 from uuid import uuid4
 import openai
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from llmtaskgraph.task_graph import TaskGraph
 
 
 class Task(ABC):
@@ -13,8 +18,7 @@ class Task(ABC):
         self.task_id = str(uuid4())
         self.deps = deps
         self.kwdeps = kwdeps
-        self.output = None
-        self.error = None
+        self.output: Optional[Future] = None
 
     @property
     def dependencies(self) -> tuple[Task]:
@@ -40,13 +44,25 @@ class Task(ABC):
 
 
 class LLMTask(Task):
-    def __init__(self, prompt_formatter, params, output_parser, *deps, **kwdeps):
+    def __init__(
+        self,
+        prompt_formatter: callable,
+        params: Any,
+        output_parser: callable[[str], Any],
+        *deps: tuple[Task],
+        **kwdeps: dict[str, Task],
+    ):
         super().__init__(*deps, **kwdeps)
         self.prompt_formatter = prompt_formatter
         self.params = params
         self.output_parser = output_parser
 
-    async def execute(self, graph_input, *dep_results, **kwdep_results):
+    async def execute(
+        self,
+        graph_input: Any,
+        *dep_results: tuple[Any],
+        **kwdep_results: dict[str, Any],
+    ):
         formatted_prompt = self.prompt_formatter(
             graph_input, *dep_results, **kwdep_results
         )
@@ -71,11 +87,16 @@ class LLMTask(Task):
 
 
 class PythonTask(Task):
-    def __init__(self, callback, *deps, **kwdeps):
+    def __init__(self, callback, *deps: tuple[Task], **kwdeps: dict[str, Task]):
         super().__init__(*deps, **kwdeps)
         self.callback = callback
 
-    async def execute(self, graph_input, *dep_results, **kwdep_results):
+    async def execute(
+        self,
+        graph_input: Any,
+        *dep_results: tuple[Any],
+        **kwdep_results: dict[str, Any],
+    ):
         if inspect.iscoroutinefunction(self.callback):
             return await self.callback(graph_input, *dep_results, **kwdep_results)
         else:
@@ -83,12 +104,23 @@ class PythonTask(Task):
 
 
 class TaskGraphTask(Task):
-    def __init__(self, subgraph, input_formatter, *deps, **kwdeps):
+    def __init__(
+        self,
+        subgraph: "TaskGraph",
+        input_formatter: callable,
+        *deps: tuple[Task],
+        **kwdeps: dict[str, Task],
+    ):
         super().__init__(*deps, **kwdeps)
         self.subgraph = subgraph
         self.input_formatter = input_formatter
 
-    async def execute(self, graph_input, *dep_results, **kwdep_results):
+    async def execute(
+        self,
+        graph_input: Any,
+        *dep_results: tuple[Any],
+        **kwdep_results: dict[str, Any],
+    ):
         return await self.subgraph.run(
             self.input_formatter(graph_input, *dep_results, **kwdep_results)
         )
