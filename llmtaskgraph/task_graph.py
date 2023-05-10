@@ -10,6 +10,7 @@ class TaskGraph:
         self.started = False
         self.graph_input: Optional[Any] = None
         self.output_task: Optional[Task] = None
+        self.function_registry: dict[str, callable] = None
 
     def add_task(self, task: Task):
         for dependency in task.dependencies:
@@ -18,7 +19,7 @@ class TaskGraph:
 
         self.tasks.append(task)
         if self.started:
-            asyncio.create_task(task.start(self.graph_input))
+            asyncio.create_task(task.start(self.graph_input, self.function_registry))
 
         return task.task_id
 
@@ -27,13 +28,16 @@ class TaskGraph:
         self.output_task = task
         return task.task_id
 
-    async def run(self, graph_input: Optional[Any] = None) -> Any:
+    async def run(
+        self, function_registry: dict[str, callable], graph_input: Optional[Any] = None
+    ) -> Any:
         self.started = True
         self.graph_input = graph_input
+        self.function_registry = function_registry
         # Start all initially available tasks.
         # N.B.: Tasks added during execution will be started by add_task.
         for task in self.tasks:
-            asyncio.create_task(task.start(graph_input))
+            asyncio.create_task(task.start(graph_input, function_registry))
         # Let tasks start so we have something to wait for below.
         await asyncio.sleep(0)
 
@@ -44,4 +48,5 @@ class TaskGraph:
                 [task.output for task in self.tasks if task.output is not None]
             )
 
+        self.function_registry = None
         return await self.output_task.output if self.output_task else None

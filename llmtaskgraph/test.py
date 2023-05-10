@@ -42,36 +42,45 @@ def join_ideas(_, *ideas):
 
 
 task_graph = TaskGraph()
+function_registry = {}
+function_registry["prompt"] = prompt
+function_registry["parse_ideas"] = parse_ideas
 llm_tasks = [
-    LLMTask(prompt, {"model": "gpt-3.5-turbo", "n": 1, "temperature": 1}, parse_ideas)
+    LLMTask(
+        "prompt", {"model": "gpt-3.5-turbo", "n": 1, "temperature": 1}, "parse_ideas"
+    )
     for _ in range(3)
 ]
 
 for task in llm_tasks:
     task_graph.add_task(task)
 
-join_task = PythonTask(join_ideas, *llm_tasks)
+function_registry["join_ideas"] = join_ideas
+join_task = PythonTask("join_ideas", *llm_tasks)
 task_graph.add_output_task(join_task)
 
 nested_task_ran = False
+
+
+def nested_task(_):
+    global nested_task_ran
+    nested_task_ran = True
+    print("nested task ran")
+    return "nested task ran"
 
 
 # create a task that creates other tasks
 def add_nested_task(_):
     print("ran add_nested_task")
 
-    def nested_task(_):
-        global nested_task_ran
-        nested_task_ran = True
-        print("nested task ran")
-        return "nested task ran"
-
-    task_graph.add_task(PythonTask(nested_task))
+    task_graph.add_task(PythonTask("nested_task"))
     print("nested task created")
     return "nested task created"
 
 
-task_graph.add_task(PythonTask(add_nested_task))
+function_registry["nested_task"] = nested_task
+function_registry["add_nested_task"] = add_nested_task
+task_graph.add_task(PythonTask("add_nested_task"))
 
 
 # create a task that throws an exception
@@ -79,10 +88,11 @@ def throw_exception(_):
     raise Exception("test exception")
 
 
-task_graph.add_task(PythonTask(throw_exception))
+function_registry["throw_exception"] = throw_exception
+task_graph.add_task(PythonTask("throw_exception"))
 
 print("running task graph")
-output = asyncio.run(task_graph.run())
+output = asyncio.run(task_graph.run(function_registry))
 
 print(output)
 
