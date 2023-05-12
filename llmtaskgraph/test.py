@@ -1,8 +1,8 @@
 import asyncio
-import random
 import re
 import os
 from dotenv import load_dotenv
+import jsonpickle
 
 import openai
 
@@ -90,6 +90,11 @@ def throw_exception(_):
 
 function_registry["throw_exception"] = throw_exception
 task_graph.add_task(PythonTask("throw_exception"))
+
+print("serializing task graph")
+serialized = jsonpickle.encode(task_graph)
+print(serialized)
+task_graph = jsonpickle.decode(serialized)
 
 print("running task graph")
 output = asyncio.run(task_graph.run(function_registry))

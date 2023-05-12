@@ -7,9 +7,11 @@ from llmtaskgraph.task import Task
 class TaskGraph:
     def __init__(self):
         self.tasks = []
-        self.started = False
         self.graph_input: Optional[Any] = None
         self.output_task: Optional[Task] = None
+
+        # transient state during run
+        self.started = False
         self.function_registry: dict[str, callable] = None
 
     def add_task(self, task: Task):
@@ -48,5 +50,6 @@ class TaskGraph:
                 [task.output for task in self.tasks if task.output is not None]
             )
 
+        self.started = False
         self.function_registry = None
         return await self.output_task.output if self.output_task else None
