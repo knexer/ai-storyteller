@@ -18,7 +18,7 @@ def prompt(_):
     return "Give a numbered list of five fast food items."
 
 
-def parse_ideas(response):
+def parse_ideas(_, response):
     print("ran parse_ideas")
     # The regular expression pattern:
     # It looks for a number followed by a '.', ':', or ')' (with optional spaces)
@@ -70,10 +70,10 @@ def nested_task(_):
 
 
 # create a task that creates other tasks
-def add_nested_task(_):
+def add_nested_task(context):
     print("ran add_nested_task")
 
-    task_graph.add_task(PythonTask("nested_task"))
+    context.add_task(PythonTask("nested_task"))
     print("nested task created")
     return "nested task created"
 
@@ -94,10 +94,10 @@ task_graph.add_task(PythonTask("throw_exception"))
 print("serializing task graph")
 serialized = jsonpickle.encode(task_graph)
 print(serialized)
-task_graph = jsonpickle.decode(serialized)
+task_graph_2 = jsonpickle.decode(serialized)
 
 print("running task graph")
-output = asyncio.run(task_graph.run(function_registry))
+output = asyncio.run(task_graph_2.run(function_registry))
 
 print(output)
 

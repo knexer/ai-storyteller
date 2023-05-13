@@ -21,7 +21,7 @@ class TaskGraph:
 
         self.tasks.append(task)
         if self.started:
-            asyncio.create_task(task.start(self.graph_input, self.function_registry))
+            asyncio.create_task(task.start(self, self.function_registry))
 
         return task.task_id
 
@@ -29,6 +29,9 @@ class TaskGraph:
         self.add_task(task)
         self.output_task = task
         return task.task_id
+
+    def make_context_for(self, task: Task):
+        return GraphContext(self, task)
 
     async def run(
         self, function_registry: dict[str, callable], graph_input: Optional[Any] = None
@@ -39,7 +42,7 @@ class TaskGraph:
         # Start all initially available tasks.
         # N.B.: Tasks added during execution will be started by add_task.
         for task in self.tasks:
-            asyncio.create_task(task.start(graph_input, function_registry))
+            asyncio.create_task(task.start(self, function_registry))
         # Let tasks start so we have something to wait for below.
         await asyncio.sleep(0)
 
@@ -53,3 +56,20 @@ class TaskGraph:
         self.started = False
         self.function_registry = None
         return await self.output_task.output if self.output_task else None
+
+
+class GraphContext:
+    def __init__(self, graph: TaskGraph, task: Task):
+        self.graph = graph
+        self.task = task
+
+    def graph_input(self):
+        return self.graph.graph_input
+
+    def add_task(self, new_task: Task):
+        new_task.hydrate_deps(self.graph.tasks, self.task)
+        return self.graph.add_task(new_task)
+
+    def add_output_task(self, new_task: Task):
+        new_task.hydrate_deps(self.graph.tasks, self.task)
+        return self.graph.add_output_task(new_task)
