@@ -19,8 +19,9 @@ class Task(ABC):
         self.task_id = str(uuid4())
         self.deps = deps
         self.kwdeps = kwdeps
-        self.output: Optional[Future] = None
         self.created_by: Optional[Task] = None
+        self.output_data: Optional[Any] = None
+        self.output: Optional[Future] = None
 
     @property
     def dependencies(self) -> tuple[Task | str]:
@@ -42,19 +43,27 @@ class Task(ABC):
         self, graph: TaskGraph, function_registry: dict[str, callable]
     ) -> None:
         self.output = asyncio.get_running_loop().create_future()
+        # Memoize output.
+        if self.output_data is not None:
+            self.output.set_result(self.output_data)
+            return
+
+        # Collect dependncy output.
         dep_results = [await dep.output for dep in self.deps]
         kwdep_results = {
             kwdep_name: await kwdep.output for kwdep_name, kwdep in self.kwdeps.items()
         }
+
+        # Execute task.
         context: GraphContext = graph.make_context_for(self)
         try:
-            output = await self.execute(
+            self.output_data = await self.execute(
                 context, function_registry, *dep_results, **kwdep_results
             )
         except Exception as e:
             self.output.set_exception(e)
             raise
-        self.output.set_result(output)
+        self.output.set_result(self.output_data)
 
     @abstractmethod
     async def execute(

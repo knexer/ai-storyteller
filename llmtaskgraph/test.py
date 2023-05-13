@@ -94,13 +94,18 @@ task_graph.add_task(PythonTask("throw_exception"))
 print("serializing task graph")
 serialized = jsonpickle.encode(task_graph)
 print(serialized)
-task_graph_2 = jsonpickle.decode(serialized)
+task_graph_2: TaskGraph = jsonpickle.decode(serialized)
 
 print("running task graph")
 output = asyncio.run(task_graph_2.run(function_registry))
+assert nested_task_ran
+nested_task_ran = False
 
 print(output)
 serialized_2 = jsonpickle.encode(task_graph_2)
 print(serialized_2)
+task_graph_3: TaskGraph = jsonpickle.decode(serialized_2)
+output_2 = asyncio.run(task_graph_3.run(function_registry))
 
-assert nested_task_ran
+assert not nested_task_ran
+assert output == output_2
