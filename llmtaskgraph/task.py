@@ -38,17 +38,23 @@ class Task(ABC):
         }
         self.created_by = created_by
 
-    async def start(
+    async def run(
         self, graph: TaskGraph, function_registry: dict[str, callable]
     ) -> None:
+        self.output = asyncio.get_running_loop().create_future()
         dep_results = [await dep.output for dep in self.deps]
         kwdep_results = {
             kwdep_name: await kwdep.output for kwdep_name, kwdep in self.kwdeps.items()
         }
         context: GraphContext = graph.make_context_for(self)
-        self.output = asyncio.create_task(
-            self.execute(context, function_registry, *dep_results, **kwdep_results)
-        )
+        try:
+            output = await self.execute(
+                context, function_registry, *dep_results, **kwdep_results
+            )
+        except Exception as e:
+            self.output.set_exception(e)
+            raise
+        self.output.set_result(output)
 
     @abstractmethod
     async def execute(

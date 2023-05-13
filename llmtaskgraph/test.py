@@ -100,5 +100,7 @@ print("running task graph")
 output = asyncio.run(task_graph_2.run(function_registry))
 
 print(output)
+serialized_2 = jsonpickle.encode(task_graph_2)
+print(serialized_2)
 
 assert nested_task_ran

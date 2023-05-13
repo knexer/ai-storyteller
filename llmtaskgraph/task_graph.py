@@ -6,7 +6,7 @@ from llmtaskgraph.task import Task
 
 class TaskGraph:
     def __init__(self):
-        self.tasks = []
+        self.tasks: list[Task] = []
         self.graph_input: Optional[Any] = None
         self.output_task: Optional[Task] = None
 
@@ -21,7 +21,7 @@ class TaskGraph:
 
         self.tasks.append(task)
         if self.started:
-            asyncio.create_task(task.start(self, self.function_registry))
+            asyncio.create_task(task.run(self, self.function_registry))
 
         return task.task_id
 
@@ -42,7 +42,7 @@ class TaskGraph:
         # Start all initially available tasks.
         # N.B.: Tasks added during execution will be started by add_task.
         for task in self.tasks:
-            asyncio.create_task(task.start(self, function_registry))
+            asyncio.create_task(task.run(self, function_registry))
         # Let tasks start so we have something to wait for below.
         await asyncio.sleep(0)
 
@@ -73,3 +73,11 @@ class GraphContext:
     def add_output_task(self, new_task: Task):
         new_task.hydrate_deps(self.graph.tasks, self.task)
         return self.graph.add_output_task(new_task)
+
+
+# Todo:
+# - Task.output is not serializable/deserializable (!!)
+# - Can't await output until task is started, that feels wrong.
+# - Exception handling during run.
+# - Cancelling a run?
+# - TaskGraph.run() is not resumable, i.e. it re-runs tasks that already have output
