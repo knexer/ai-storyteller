@@ -76,8 +76,5 @@ class GraphContext:
 
 
 # Todo:
-# - Task.output is not serializable/deserializable (!!)
-# - Can't await output until task is started, that feels wrong.
 # - Exception handling during run.
 # - Cancelling a run?
-# - TaskGraph.run() is not resumable, i.e. it re-runs tasks that already have output
