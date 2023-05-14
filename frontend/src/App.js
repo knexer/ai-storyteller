@@ -123,6 +123,5 @@ const serialized_graph = {
 };
 
 export default function App() {
-  console.log("hello world");
   return <Graph serialized_graph={serialized_graph} />;
 }

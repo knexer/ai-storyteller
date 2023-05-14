@@ -2,11 +2,21 @@ import React from "react";
 import ReactFlow, { MiniMap, Controls, Background } from "reactflow";
 
 import getObjectsInOrder from "./jsonpickle_helper";
+import { LLMTaskNode } from "./task_node";
 
 import "reactflow/dist/style.css";
 
 function makeNode(task, y) {
   const random_x = Math.random() * 1000;
+  if (task["py/object"] === "llmtaskgraph.task.LLMTask") {
+    return {
+      id: task.task_id,
+      type: "llmtaskgraph.task.LLMTask",
+      position: { x: random_x, y: y * 100 },
+      data: { task: task },
+    };
+  }
+
   return {
     id: task.task_id,
     position: { x: random_x, y: y * 100 },
@@ -37,12 +47,10 @@ function makeEdges(task, objects_by_py_id) {
   return deps.concat(kwdeps).concat(created_by);
 }
 
-export default function Graph(props) {
-  console.log("bar");
-  const serialized_graph = props.serialized_graph;
-  console.log(serialized_graph);
+const nodeTypes = { "llmtaskgraph.task.LLMTask": LLMTaskNode };
+
+export default function Graph({ serialized_graph }) {
   const objects_by_py_id = getObjectsInOrder(serialized_graph);
-  console.log(objects_by_py_id);
 
   let starting_y = 0;
   // Create nodes from serialized graph
@@ -56,7 +64,11 @@ export default function Graph(props) {
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
-      <ReactFlow nodes={initialNodes} edges={initialEdges}>
+      <ReactFlow
+        nodes={initialNodes}
+        edges={initialEdges}
+        nodeTypes={nodeTypes}
+      >
         <Controls />
         <MiniMap />
         <Background variant="dots" gap={12} size={1} />
@@ -70,4 +82,6 @@ export default function Graph(props) {
 // add node selection:
 // - refocus the graph around the selected node?
 // - show the task details in a panel
-// - allow editing of task - change outputs, invalidate the task, etc.
+// - allow editing of task - change outputs, invalidate the task, etc. - producing an updated serialized graph
+// custom class for node?
+// subgraph support for TaskGraphTask
