@@ -1,5 +1,11 @@
 import React from "react";
-import ReactFlow, { MiniMap, Controls, Background } from "reactflow";
+import ReactFlow, {
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+} from "reactflow";
 
 import getObjectsInOrder from "./jsonpickle_helper";
 import { LLMTaskNode, PythonTaskNode } from "./task_node";
@@ -62,25 +68,38 @@ const nodeTypes = {
   "llmtaskgraph.task.PythonTask": PythonTaskNode,
 };
 
-export default function Graph({ serialized_graph }) {
+export default function Graph({ serialized_graph, select_task }) {
   const objects_by_py_id = getObjectsInOrder(serialized_graph);
 
   let starting_y = 0;
   // Create nodes from serialized graph
-  const initialNodes = serialized_graph.tasks.map((task) =>
-    makeNode(task, starting_y++)
+  const [nodes, setNodes, onNodesChange] = useNodesState(
+    serialized_graph.tasks.map((task) => makeNode(task, starting_y++))
   );
 
-  const initialEdges = serialized_graph.tasks.flatMap((task) =>
-    makeEdges(task, objects_by_py_id)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(
+    serialized_graph.tasks.flatMap((task) => makeEdges(task, objects_by_py_id))
   );
+
+  const onNodeClick = (event, node) => {
+    // Possibly also somehow highlight the selected node?
+    // Possibly also highlight related nodes?
+    select_task(node.data.task);
+  };
+
+  const onPaneClick = (event) => {
+    select_task(null);
+  };
 
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
+    <div className="graph">
       <ReactFlow
-        nodes={initialNodes}
-        edges={initialEdges}
+        nodes={nodes}
+        edges={edges}
         nodeTypes={nodeTypes}
+        elementsSelectable={true}
+        onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
       >
         <Controls />
         <MiniMap />
@@ -94,7 +113,5 @@ export default function Graph({ serialized_graph }) {
 // styling: show task state visually - with color?
 // add node selection:
 // - refocus the graph around the selected node?
-// - show the task details in a panel
 // - allow editing of task - change outputs, invalidate the task, etc. - producing an updated serialized graph
-// custom class for node?
 // subgraph support for TaskGraphTask

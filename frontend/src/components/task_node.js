@@ -4,11 +4,8 @@ import "reactflow/dist/style.css";
 const handleStyle = { left: 10 };
 
 export function LLMTaskNode({ data }) {
-  console.log("LLMTaskNode", data);
   const task = data.task;
-  // Deps, kwdeps, and created_by are all handled by edges. The rest, we should display here.
-
-  // TODO: a separate details view should also show the inputs, the formatted prompt, the unparsed model output, and the final output.
+  // Show the basic task info. Connectivity info is shown by edges. The details view will show the rest.
   return (
     <>
       <Handle type="target" position={Position.Top} />
@@ -31,8 +28,8 @@ export function LLMTaskNode({ data }) {
 }
 
 export function PythonTaskNode({ data }) {
-  console.log("PythonTaskNode", data);
   const task = data.task;
+  // Show the basic task info. Connectivity info is shown by edges. The details view will show the rest.
   return (
     <>
       <Handle type="target" position={Position.Top} />

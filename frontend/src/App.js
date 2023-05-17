@@ -1,6 +1,6 @@
 import React from "react";
 
-import Graph from "./components/graph";
+import { GraphAndDetail } from "./app/graph_and_detail";
 
 const serialized_graph = {
   "py/object": "llmtaskgraph.task_graph.TaskGraph",
@@ -123,5 +123,5 @@ const serialized_graph = {
 };
 
 export default function App() {
-  return <Graph serialized_graph={serialized_graph} />;
+  return <GraphAndDetail serialized_graph={serialized_graph} />;
 }

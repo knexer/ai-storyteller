@@ -17,3 +17,20 @@ code {
   padding: 15px;
   white-space: nowrap;
 }
+
+.graph-and-detail {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  height: 100vh;
+}
+
+.graph {
+  flex: 1;
+  height: 500px;
+}
+
+.task-detail {
+  flex: 1;
+}
