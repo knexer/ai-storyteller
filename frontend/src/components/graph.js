@@ -2,7 +2,7 @@ import React from "react";
 import ReactFlow, { MiniMap, Controls, Background } from "reactflow";
 
 import getObjectsInOrder from "./jsonpickle_helper";
-import { LLMTaskNode } from "./task_node";
+import { LLMTaskNode, PythonTaskNode } from "./task_node";
 
 import "reactflow/dist/style.css";
 
@@ -17,6 +17,15 @@ function makeNode(task, y) {
     };
   }
 
+  if (task["py/object"] === "llmtaskgraph.task.PythonTask") {
+    return {
+      id: task.task_id,
+      type: "llmtaskgraph.task.PythonTask",
+      position: { x: random_x, y: y * 100 },
+      data: { task: task },
+    };
+  }
+
   return {
     id: task.task_id,
     position: { x: random_x, y: y * 100 },
@@ -24,12 +33,13 @@ function makeNode(task, y) {
   };
 }
 
-function makeEdge(task, dep, objects_by_py_id) {
+function makeEdge(task, dep, objects_by_py_id, sourceHandle = "output") {
   const dep_task = objects_by_py_id[dep["py/id"]];
   const edge = {
     id: `${task.task_id}-${dep_task.task_id}`,
     source: dep_task.task_id,
     target: task.task_id,
+    sourceHandle: sourceHandle,
   };
   return edge;
 }
@@ -42,12 +52,15 @@ function makeEdges(task, objects_by_py_id) {
     makeEdge(task, dep, objects_by_py_id)
   );
   const created_by = task.created_by
-    ? [makeEdge(task, task.created_by, objects_by_py_id)]
+    ? [makeEdge(task, task.created_by, objects_by_py_id, "task creation")]
     : [];
   return deps.concat(kwdeps).concat(created_by);
 }
 
-const nodeTypes = { "llmtaskgraph.task.LLMTask": LLMTaskNode };
+const nodeTypes = {
+  "llmtaskgraph.task.LLMTask": LLMTaskNode,
+  "llmtaskgraph.task.PythonTask": PythonTaskNode,
+};
 
 export default function Graph({ serialized_graph }) {
   const objects_by_py_id = getObjectsInOrder(serialized_graph);
