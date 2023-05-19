@@ -3,10 +3,10 @@ export function TaskDetail({ task }) {
   return (
     <div className="task-detail">
       <div>Task Detail</div>
-      {type == "llmtaskgraph.task.LLMTask" ? (
+      {type === "llmtaskgraph.task.LLMTask" ? (
         <LLMTaskDetail task={task} />
       ) : null}
-      {type == "llmtaskgraph.task.PythonTask" ? (
+      {type === "llmtaskgraph.task.PythonTask" ? (
         <PythonTaskDetail task={task} />
       ) : null}
     </div>
