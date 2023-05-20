@@ -1,10 +1,33 @@
-export function TaskDetail({ task }) {
-  if (task === null) {
+import React, { useState } from 'react';
+
+export function TaskDetail({ graph, task_id, onEdit }) {
+  const [editing, setEditing] = useState(false);
+  const [newOutputData, setNewOutputData] = useState(null);
+
+  if (task_id === null) {
     return (<div className="task-detail">
       <div>Task Detail</div>
       No task selected
     </div>);
   }
+
+  const task = graph.tasks.find((task) => task.task_id === task_id);
+
+  const handleEdit = () => {
+    setNewOutputData(task.output_data);
+    setEditing(true);
+  };
+
+  const handleSave = () => {
+    onEdit(task.task_id, newOutputData);
+    setEditing(false);
+  };
+
+  const handleDelete = () => {
+    onEdit(task.task_id, null);
+    setEditing(false);
+  };
+
   const type = task.type;
   return (
     <div className="task-detail">
@@ -18,7 +41,20 @@ export function TaskDetail({ task }) {
       {type === "PythonTask" ? (
         <PythonTaskDetail task={task} />
       ) : null}
-      <div>{JSON.stringify(task.output_data)}</div>
+      <div>
+        {editing ? (
+          <>
+            <textarea value={JSON.stringify(newOutputData)} onChange={(e) => setNewOutputData(JSON.parse(e.target.value))}/>
+            <button onClick={handleSave}>Save</button>
+            <button onClick={handleDelete}>Delete Output</button>
+          </>
+        ) : (
+          <>
+            <div>{JSON.stringify(task.output_data)}</div>
+            <button onClick={handleEdit}>Edit Output</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

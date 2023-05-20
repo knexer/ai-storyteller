@@ -87,7 +87,7 @@ function getLayoutedElements(nodes, edges, direction = "TB") {
   return { nodes, edges, width: dagreGraph.width, height: dagreGraph.height };
 }
 
-export default function Graph({ serialized_graph, select_task }) {
+export default function Graph({ serialized_graph, select_task_id }) {
   // Create nodes from serialized graph
   const direction = "TB"; // TB or LR
 
@@ -100,24 +100,21 @@ export default function Graph({ serialized_graph, select_task }) {
 
   const graph = getLayoutedElements(initialNodes, initialEdges, direction);
 
-  const [nodes] = useNodesState(graph.nodes);
-  const [edges] = useEdgesState(graph.edges);
-
   const onNodeClick = (_, node) => {
     // Possibly also somehow highlight the selected node?
     // Possibly also highlight related nodes?
-    select_task(node.data.task);
+    select_task_id(node.data.task.task_id);
   };
 
   const onPaneClick = (_) => {
-    select_task(null);
+    select_task_id(null);
   };
 
   return (
     <div className="graph">
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={graph.nodes}
+        edges={graph.edges}
         nodeTypes={nodeTypes}
         elementsSelectable={true}
         fitView={true}

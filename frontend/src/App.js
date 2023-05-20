@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 
 import { GraphAndDetail } from "./app/graph_and_detail";
 
-const serialized_graph = {
+const original_graph = {
   "tasks": [
     {
       "type": "LLMTask",
@@ -107,5 +107,28 @@ const serialized_graph = {
 };
 
 export default function App() {
-  return <GraphAndDetail serialized_graph={serialized_graph} />;
+  const [serialized_graph, setSerializedGraph] = useState(original_graph);
+
+  const handleEdit = (task_id, output_data) => {
+    // Deep copy the serialized graph
+    const new_graph = JSON.parse(JSON.stringify(serialized_graph));
+
+    // Find the task
+    const task = new_graph.tasks.find((task) => task.task_id === task_id);
+    if (!task) return;
+
+    // Update the output_data
+    task.output_data = output_data;
+
+    // Update the state
+    setSerializedGraph(new_graph);
+  };
+
+  return (
+    <div className="app">
+      <button onClick={() => setSerializedGraph(original_graph)}>Reset</button>
+      <button onClick={() => navigator.clipboard.writeText(JSON.stringify(serialized_graph))}>Copy to clipboard</button>
+      <GraphAndDetail serialized_graph={serialized_graph} onEdit={handleEdit} />
+    </div>
+  );
 }

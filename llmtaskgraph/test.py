@@ -3,7 +3,6 @@ import json
 import re
 import os
 from dotenv import load_dotenv
-import jsonpickle
 
 import openai
 

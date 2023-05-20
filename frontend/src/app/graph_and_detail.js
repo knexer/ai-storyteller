@@ -3,16 +3,16 @@ import { useState } from "react";
 import Graph from "../components/graph";
 import { TaskDetail } from "../components/task_detail";
 
-export function GraphAndDetail({ serialized_graph }) {
-  const [selected_task, update_selected_task] = useState(null);
+export function GraphAndDetail({ serialized_graph, onEdit }) {
+  const [selected_task_id, update_selected_task_id] = useState(null);
 
   return (
     <div className={"graph-and-detail"}>
       <Graph
         serialized_graph={serialized_graph}
-        select_task={update_selected_task}
+        select_task_id={update_selected_task_id}
       />
-      <TaskDetail serialized_graph={serialized_graph} task={selected_task} />
+      <TaskDetail key={selected_task_id} graph={serialized_graph} task_id={selected_task_id} onEdit={onEdit} />
     </div>
   );
 }
