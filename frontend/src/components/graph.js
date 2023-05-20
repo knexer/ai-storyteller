@@ -8,14 +8,14 @@ import ReactFlow, {
 } from "reactflow";
 import dagre from "dagre";
 
-import { LLMTaskNode, PythonTaskNode } from "./task_node";
+import { TaskNode } from "./task_node";
 
 import "reactflow/dist/style.css";
 
 function makeNode(task, direction) {
   return {
     id: task.task_id,
-    type: task.type,
+    type: "Task",
     data: { task: task, direction: direction },
   };
 }
@@ -45,8 +45,7 @@ function makeEdges(task, tasks) {
 }
 
 const nodeTypes = {
-  "LLMTask": LLMTaskNode,
-  "PythonTask": PythonTaskNode,
+  "Task": TaskNode,
 };
 
 function getLayoutedElements(nodes, edges, direction = "TB") {
