@@ -101,16 +101,16 @@ export default function Graph({ serialized_graph, select_task }) {
 
   const graph = getLayoutedElements(initialNodes, initialEdges, direction);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
+  const [nodes] = useNodesState(graph.nodes);
+  const [edges] = useEdgesState(graph.edges);
 
-  const onNodeClick = (event, node) => {
+  const onNodeClick = (_, node) => {
     // Possibly also somehow highlight the selected node?
     // Possibly also highlight related nodes?
     select_task(node.data.task);
   };
 
-  const onPaneClick = (event) => {
+  const onPaneClick = (_) => {
     select_task(null);
   };
 

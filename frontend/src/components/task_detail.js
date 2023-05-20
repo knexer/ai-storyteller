@@ -1,14 +1,24 @@
 export function TaskDetail({ task }) {
-  const type = task ? task.type : null;
+  if (task === null) {
+    return (<div className="task-detail">
+      <div>Task Detail</div>
+      No task selected
+    </div>);
+  }
+  const type = task.type;
   return (
     <div className="task-detail">
       <div>Task Detail</div>
+      <div>{type}</div>
+      <div>State: {task.output_data === null ? "Incomplete" : "Complete"}</div>
+      <div>{task.task_id}</div>
       {type === "LLMTask" ? (
         <LLMTaskDetail task={task} />
       ) : null}
       {type === "PythonTask" ? (
         <PythonTaskDetail task={task} />
       ) : null}
+      <div>{JSON.stringify(task.output_data)}</div>
     </div>
   );
 }
@@ -16,10 +26,9 @@ export function TaskDetail({ task }) {
 export function LLMTaskDetail({ task }) {
   return (
     <>
-      <div>LLM Task</div>
-      <div>{task.task_id}</div>
-      <div>{task.callback_id}</div>
-      <div>{JSON.stringify(task.output_data)}</div>
+      <div>{task.prompt_formatter_id}</div>
+      <div>{JSON.stringify(task.params)}</div>
+      <div>{task.output_parser_id}</div>
     </>
   );
 }
@@ -27,10 +36,7 @@ export function LLMTaskDetail({ task }) {
 export function PythonTaskDetail({ task }) {
   return (
     <>
-      <div>Python Task</div>
-      <div>{task.task_id}</div>
       <div>{task.callback_id}</div>
-      <div>{JSON.stringify(task.output_data)}</div>
     </>
   );
 }
