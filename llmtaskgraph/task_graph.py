@@ -57,6 +57,27 @@ class TaskGraph:
         self.function_registry = None
         return await self.output_task.output if self.output_task else None
 
+    def to_json(self):
+        return {
+            "tasks": [task.to_json() for task in self.tasks],
+            "graph_input": self.graph_input,
+            "output_task": self.output_task.task_id if self.output_task else None,
+        }
+
+    @classmethod
+    def from_json(cls, json: dict[str, Any]):
+        graph = TaskGraph()
+        graph.tasks = []
+        for task_json in json["tasks"]:
+            task = Task.from_json(task_json)
+            task.hydrate_deps(graph.tasks, None)
+            graph.tasks.append(task)
+        graph.graph_input = json["graph_input"]
+        graph.output_task = next(
+            (task for task in graph.tasks if task.task_id == json["output_task"]), None
+        )
+        return graph
+
 
 class GraphContext:
     def __init__(self, graph: TaskGraph, task: Task):

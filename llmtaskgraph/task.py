@@ -6,6 +6,7 @@ import inspect
 from typing import Any, Optional
 from uuid import uuid4
 import openai
+import json
 
 from typing import TYPE_CHECKING
 
@@ -19,7 +20,7 @@ class Task(ABC):
         self.task_id = str(uuid4())
         self.deps = deps
         self.kwdeps = kwdeps
-        self.created_by: Optional[Task] = None
+        self.created_by: Optional[Task | str] = None
         self.output_data: Optional[Any] = None
         self.output: Optional[Future] = None
 
@@ -31,13 +32,17 @@ class Task(ABC):
         else:
             return declared_deps
 
-    def hydrate_deps(self, tasks_by_id: dict[str, Task], created_by: Task):
+    def hydrate_deps(self, tasks: list[Task], created_by: Task):
+        tasks_by_id = {task.task_id: task for task in tasks}
         self.deps = tuple(tasks_by_id[dep_id] for dep_id in self.deps)
         self.kwdeps = {
             kwdep_name: tasks_by_id[kwdep_id]
             for kwdep_name, kwdep_id in self.kwdeps.items()
         }
-        self.created_by = created_by
+        if self.created_by:
+            self.created_by = tasks_by_id[self.created_by]
+        else:
+            self.created_by = created_by
 
     async def run(
         self, graph: TaskGraph, function_registry: dict[str, callable]
@@ -74,6 +79,45 @@ class Task(ABC):
         **kwdep_results: dict[str, Any],
     ):
         pass
+
+    @abstractmethod
+    def to_json(self) -> dict[str, Any]:
+        def get_id(dep: Task | str) -> str:
+            if isinstance(dep, Task):
+                return dep.task_id
+            else:
+                return dep
+
+        return {
+            "type": self.__class__.__name__,
+            "task_id": self.task_id,
+            "deps": [get_id(dep) for dep in self.deps],
+            "kwdeps": {k: get_id(v) for k, v in self.kwdeps.items()},
+            "created_by": get_id(self.created_by),
+            # TODO may need to do something fancier at some point to handle custom types in output_data
+            "output_data": self.output_data,
+        }
+
+    @classmethod
+    @abstractmethod
+    def from_json(cls, json: dict[str, Any]) -> Task:
+        # TODO handle this in an extensible way
+        task_types = {
+            "LLMTask": LLMTask,
+            "PythonTask": PythonTask,
+            "TaskGraphTask": TaskGraphTask,
+        }
+
+        task_type = json.pop("type")
+        return task_types[task_type].from_json(json)
+
+    def init_from_json(self, json: dict[str, Any]) -> None:
+        self.task_id = json["task_id"]
+        self.deps = json["deps"]
+        self.kwdeps = json["kwdeps"]
+        self.created_by = json["created_by"]
+        # TODO may need to do something fancier at some point to handle custom types in output_data
+        self.output_data = json["output_data"]
 
 
 class LLMTask(Task):
@@ -119,6 +163,27 @@ class LLMTask(Task):
         # Todo: handle n > 1
         return response.choices[0].message.content
 
+    def to_json(self):
+        json = super().to_json()
+        json.update(
+            {
+                "prompt_formatter_id": self.prompt_formatter_id,
+                "params": self.params,
+                "output_parser_id": self.output_parser_id,
+            }
+        )
+        return json
+
+    @classmethod
+    def from_json(cls, json: dict[str, Any]) -> LLMTask:
+        task = cls(
+            json.pop("prompt_formatter_id"),
+            json.pop("params"),
+            json.pop("output_parser_id"),
+        )
+        task.init_from_json(json)
+        return task
+
 
 class PythonTask(Task):
     def __init__(
@@ -139,6 +204,23 @@ class PythonTask(Task):
             return await callback(context, *dep_results, **kwdep_results)
         else:
             return callback(context, *dep_results, **kwdep_results)
+
+    def to_json(self):
+        json = super().to_json()
+        json.update(
+            {
+                "callback_id": self.callback_id,
+            }
+        )
+        return json
+
+    @classmethod
+    def from_json(cls, json: dict[str, Any]) -> PythonTask:
+        task = cls(
+            json.pop("callback_id"),
+        )
+        task.init_from_json(json)
+        return task
 
 
 class TaskGraphTask(Task):
@@ -166,3 +248,22 @@ class TaskGraphTask(Task):
                 context, *dep_results, **kwdep_results
             ),
         )
+
+    def to_json(self):
+        json = super().to_json()
+        json.update(
+            {
+                "subgraph": self.subgraph.to_json(),
+                "input_formatter_id": self.input_formatter_id,
+            }
+        )
+        return json
+
+    @classmethod
+    def from_json(cls, json: dict[str, Any]) -> TaskGraphTask:
+        task = cls(
+            TaskGraph.from_json(json.pop("subgraph")),
+            json.pop("input_formatter_id"),
+        )
+        task.init_from_json(json)
+        return task
