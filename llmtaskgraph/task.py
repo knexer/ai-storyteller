@@ -8,7 +8,7 @@ from uuid import uuid4
 import openai
 import json
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Union
 
 if TYPE_CHECKING:
     from llmtaskgraph.task_graph import GraphContext
@@ -16,23 +16,23 @@ if TYPE_CHECKING:
 
 
 class Task(ABC):
-    def __init__(self, *deps: tuple[Task | str], **kwdeps: dict[str, Task | str]):
+    def __init__(self, *deps: Union[tuple[Task, ...], tuple[str, ...]], **kwdeps: Union[dict[str, Task], dict[str, str]]):
         self.task_id = str(uuid4())
         self.deps = deps
         self.kwdeps = kwdeps
-        self.created_by: Optional[Task | str] = None
+        self.created_by: Optional[Union[Task, str]] = None
         self.output_data: Optional[Any] = None
         self.output: Optional[Future] = None
 
     @property
-    def dependencies(self) -> tuple[Task | str]:
+    def dependencies(self) -> Union[tuple[Task, ...], tuple[str, ...]]:
         declared_deps = self.deps + tuple(self.kwdeps.values())
         if self.created_by:
             return declared_deps + (self.created_by,)
         else:
             return declared_deps
 
-    def hydrate_deps(self, tasks: list[Task], created_by: Task):
+    def hydrate_deps(self, tasks: list[Task], created_by: Optional[Task]):
         tasks_by_id = {task.task_id: task for task in tasks}
         self.deps = tuple(tasks_by_id[dep_id] for dep_id in self.deps)
         self.kwdeps = {
@@ -45,7 +45,7 @@ class Task(ABC):
             self.created_by = created_by
 
     async def run(
-        self, graph: TaskGraph, function_registry: dict[str, callable]
+        self, graph: TaskGraph, function_registry: dict[str, Callable]
     ) -> None:
         self.output = asyncio.get_running_loop().create_future()
         # Memoize output.
@@ -74,7 +74,7 @@ class Task(ABC):
     async def execute(
         self,
         context: GraphContext,
-        function_registry: dict[str, callable],
+        function_registry: dict[str, Callable],
         *dep_results: tuple[Any],
         **kwdep_results: dict[str, Any],
     ):
@@ -82,7 +82,7 @@ class Task(ABC):
 
     @abstractmethod
     def to_json(self) -> dict[str, Any]:
-        def get_id(dep: Task | str) -> str:
+        def get_id(dep: Union[Task, str]) -> str:
             if isinstance(dep, Task):
                 return dep.task_id
             else:
@@ -126,8 +126,8 @@ class LLMTask(Task):
         prompt_formatter_id: str,
         params: Any,
         output_parser_id: str,
-        *deps: tuple[Task | str],
-        **kwdeps: dict[str, Task | str],
+        *deps: Union[tuple[Task, ...], tuple[str, ...]],
+        **kwdeps: Union[dict[str, Task], dict[str, str]],
     ):
         super().__init__(*deps, **kwdeps)
         self.prompt_formatter_id = prompt_formatter_id
@@ -137,7 +137,7 @@ class LLMTask(Task):
     async def execute(
         self,
         context: GraphContext,
-        function_registry: dict[str, callable],
+        function_registry: dict[str, Callable],
         *dep_results: tuple[Any],
         **kwdep_results: dict[str, Any],
     ):
@@ -187,7 +187,7 @@ class LLMTask(Task):
 
 class PythonTask(Task):
     def __init__(
-        self, callback_id, *deps: tuple[Task | str], **kwdeps: dict[str, Task | str]
+        self, callback_id: str, *deps: Union[tuple[Task, ...], tuple[str, ...]], **kwdeps: Union[dict[str, Task], dict[str, str]]
     ):
         super().__init__(*deps, **kwdeps)
         self.callback_id = callback_id
@@ -195,7 +195,7 @@ class PythonTask(Task):
     async def execute(
         self,
         context: GraphContext,
-        function_registry: dict[str, callable],
+        function_registry: dict[str, Callable],
         *dep_results: tuple[Any],
         **kwdep_results: dict[str, Any],
     ):
@@ -228,8 +228,8 @@ class TaskGraphTask(Task):
         self,
         subgraph: "TaskGraph",
         input_formatter_id: str,
-        *deps: tuple[Task | str],
-        **kwdeps: dict[str, Task | str],
+        *deps: Union[tuple[Task, ...], tuple[str, ...]],
+        **kwdeps: Union[dict[str, Task], dict[str, str]]
     ):
         super().__init__(*deps, **kwdeps)
         self.subgraph = subgraph
@@ -238,7 +238,7 @@ class TaskGraphTask(Task):
     async def execute(
         self,
         context: GraphContext,
-        function_registry: dict[str, callable],
+        function_registry: dict[str, Callable],
         *dep_results: tuple[Any],
         **kwdep_results: dict[str, Any],
     ):

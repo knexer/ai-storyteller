@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 
 from llmtaskgraph.task import Task
 
@@ -12,15 +12,16 @@ class TaskGraph:
 
         # transient state during run
         self.started = False
-        self.function_registry: dict[str, callable] = None
+        self.function_registry: Optional[dict[str, Callable]] = None
 
-    def add_task(self, task: Task):
+    def add_task(self, task: Task) -> str:
         for dependency in task.dependencies:
             if dependency not in self.tasks:
                 raise ValueError(f"Dependency {dependency} not found in task graph")
 
         self.tasks.append(task)
         if self.started:
+            assert self.function_registry is not None
             asyncio.create_task(task.run(self, self.function_registry))
 
         return task.task_id
@@ -34,7 +35,7 @@ class TaskGraph:
         return GraphContext(self, task)
 
     async def run(
-        self, function_registry: dict[str, callable], graph_input: Optional[Any] = None
+        self, function_registry: dict[str, Callable], graph_input: Optional[Any] = None
     ) -> Any:
         self.started = True
         self.graph_input = graph_input
@@ -55,7 +56,11 @@ class TaskGraph:
 
         self.started = False
         self.function_registry = None
-        return await self.output_task.output if self.output_task else None
+
+        if self.output_task is None:
+            return None
+        assert self.output_task.output is not None
+        return await self.output_task.output
 
     def to_json(self):
         return {
