@@ -8,36 +8,20 @@ import ReactFlow, {
 } from "reactflow";
 import dagre from "dagre";
 
-import getObjectsInOrder from "./jsonpickle_helper";
 import { LLMTaskNode, PythonTaskNode } from "./task_node";
 
 import "reactflow/dist/style.css";
 
 function makeNode(task, direction) {
-  if (task["py/object"] === "llmtaskgraph.task.LLMTask") {
-    return {
-      id: task.task_id,
-      type: "llmtaskgraph.task.LLMTask",
-      data: { task: task, direction: direction },
-    };
-  }
-
-  if (task["py/object"] === "llmtaskgraph.task.PythonTask") {
-    return {
-      id: task.task_id,
-      type: "llmtaskgraph.task.PythonTask",
-      data: { task: task, direction: direction },
-    };
-  }
-
   return {
     id: task.task_id,
-    data: { label: task["py/object"] },
+    type: task.type,
+    data: { task: task, direction: direction },
   };
 }
 
-function makeEdge(task, dep, objects_by_py_id, sourceHandle = "output") {
-  const dep_task = objects_by_py_id[dep["py/id"]];
+function makeEdge(task, dep_task_id, tasks, sourceHandle = "output") {
+  const dep_task = tasks.find((t) => t.task_id === dep_task_id);
   const edge = {
     id: `${task.task_id}-${dep_task.task_id}`,
     source: dep_task.task_id,
@@ -47,22 +31,22 @@ function makeEdge(task, dep, objects_by_py_id, sourceHandle = "output") {
   return edge;
 }
 
-function makeEdges(task, objects_by_py_id) {
-  const deps = task.deps["py/tuple"].map((dep) =>
-    makeEdge(task, dep, objects_by_py_id)
+function makeEdges(task, tasks) {
+  const deps = task.deps.map((dep) =>
+    makeEdge(task, dep, tasks)
   );
   const kwdeps = Object.values(task.kwdeps).map((dep) =>
-    makeEdge(task, dep, objects_by_py_id)
+    makeEdge(task, dep, tasks)
   );
   const created_by = task.created_by
-    ? [makeEdge(task, task.created_by, objects_by_py_id, "task creation")]
+    ? [makeEdge(task, task.created_by, tasks, "task creation")]
     : [];
   return deps.concat(kwdeps).concat(created_by);
 }
 
 const nodeTypes = {
-  "llmtaskgraph.task.LLMTask": LLMTaskNode,
-  "llmtaskgraph.task.PythonTask": PythonTaskNode,
+  "LLMTask": LLMTaskNode,
+  "PythonTask": PythonTaskNode,
 };
 
 function getLayoutedElements(nodes, edges, direction = "TB") {
@@ -106,14 +90,13 @@ function getLayoutedElements(nodes, edges, direction = "TB") {
 
 export default function Graph({ serialized_graph, select_task }) {
   // Create nodes from serialized graph
-  const objects_by_py_id = getObjectsInOrder(serialized_graph);
   const direction = "TB"; // TB or LR
 
   const initialNodes = serialized_graph.tasks.map((task) =>
     makeNode(task, direction)
   );
   const initialEdges = serialized_graph.tasks.flatMap((task) =>
-    makeEdges(task, objects_by_py_id)
+    makeEdges(task, serialized_graph.tasks)
   );
 
   const graph = getLayoutedElements(initialNodes, initialEdges, direction);

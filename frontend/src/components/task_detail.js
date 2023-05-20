@@ -1,12 +1,12 @@
 export function TaskDetail({ task }) {
-  const type = task ? task["py/object"] : null;
+  const type = task ? task.type : null;
   return (
     <div className="task-detail">
       <div>Task Detail</div>
-      {type === "llmtaskgraph.task.LLMTask" ? (
+      {type === "LLMTask" ? (
         <LLMTaskDetail task={task} />
       ) : null}
-      {type === "llmtaskgraph.task.PythonTask" ? (
+      {type === "PythonTask" ? (
         <PythonTaskDetail task={task} />
       ) : null}
     </div>
