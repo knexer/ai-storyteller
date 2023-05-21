@@ -2,56 +2,67 @@ from collections import defaultdict
 
 from fuzzywuzzy import fuzz
 
-from llmtaskgraph.task_graph import TaskGraph
+from llmtaskgraph.task_graph import TaskGraph, GraphContext
 from llmtaskgraph.task import TaskGraphTask, PythonTask
-from pitching.score_ideas import score_ideas
+from pitching.score_ideas import score_ideas, function_registry as score_ideas_function_registry
+
+def function_registry():
+    return dict({
+        "init_most_creative": init_most_creative,
+        "init_best_fit": init_best_fit,
+        "init_cutest": init_cutest,
+        "weighted_sum": weighted_sum,
+    }, **score_ideas_function_registry())
+
+def init_most_creative(context: GraphContext):
+    return {
+        "criteria": "most creative, surprising, and unexpected ideas that excite the imagination",
+        "ideas": context.graph_input()["ideas"],
+    }
+
+def init_best_fit(context: GraphContext):
+    return {
+        "criteria": f"""ideas that best fit the client's constraints:\n{context.graph_input()["conditioning_info"]}""",
+        "ideas": context.graph_input()["ideas"],
+    }
+
+def init_cutest(context: GraphContext):
+    return {
+        "criteria": "cutest and most adorable stories",
+        "ideas": context.graph_input()["ideas"],
+    }
 
 
 def pick_best_idea():
     task_graph = TaskGraph()
-    most_creative = task_graph.add_task(
-        TaskGraphTask(
-            score_ideas(4),
-            lambda input: {
-                "criteria": "most creative, surprising, and unexpected ideas that excite the imagination",
-                "ideas": input["global"]["ideas"],
-            },
-        )
+    most_creative = TaskGraphTask(
+        score_ideas(4),
+        "init_most_creative",
     )
-    best_fit = task_graph.add_task(
-        TaskGraphTask(
-            score_ideas(4),
-            lambda input: {
-                "criteria": f"""ideas that best fit the client's constraints:\n{input["global"]["conditioning_info"]}""",
-                "ideas": input["global"]["ideas"],
-            },
-        )
+    task_graph.add_task(most_creative)
+
+    best_fit = TaskGraphTask(
+        score_ideas(4),
+        "init_best_fit",
     )
-    cutest = task_graph.add_task(
-        TaskGraphTask(
-            score_ideas(4),
-            lambda input: {
-                "criteria": "cutest and most adorable stories",
-                "ideas": input["global"]["ideas"],
-            },
-        )
+    task_graph.add_task(best_fit)
+    cutest = TaskGraphTask(
+        score_ideas(4),
+        "init_cutest",
     )
+    task_graph.add_task(cutest)
     task_graph.add_output_task(
-        weighted_sum_task([0.5, 0.3, 0.2], [most_creative, best_fit, cutest])
+        PythonTask(
+            "weighted_sum",
+            most_creative, best_fit, cutest
+        )
     )
     return task_graph
 
 
-def weighted_sum_task(weights, votes_tasks):
-    return PythonTask(
-        lambda input: weighted_sum(
-            weights, [input[id] for id in votes_tasks], input["global"]["ideas"]
-        ),
-        votes_tasks,
-    )
-
-
-def weighted_sum(weights, votes, ideas):
+def weighted_sum(context: GraphContext, weights, *votes):
+    ideas = context.graph_input()["ideas"]
+    weights = [0.5, 0.3, 0.2]
     combined_vote_counts = defaultdict(float)
     for weight, vote in zip(weights, votes):
         for idea, count in vote:

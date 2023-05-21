@@ -1,37 +1,46 @@
 from llmtaskgraph.task import PythonTask, LLMTask
-from llmtaskgraph.task_graph import TaskGraph
+from llmtaskgraph.task_graph import GraphContext, TaskGraph
 
 import json
 import random
 
 
+def function_registry():
+    return {
+        "pick_top_five": pick_top_five,
+        "extract_titles": extract_titles,
+        "tally_votes": tally_votes,
+        "identity": lambda x: x,
+        "parse_json": lambda x: json.loads(x),
+    }
+
 def score_ideas(num_voters):
     task_graph = TaskGraph()
-    titles_task_ids = []
+    titles_tasks = []
     for _ in range(num_voters):
         # Pick the top five ideas
         top_five = LLMTask(
-            top_five_prompt(),
+            "pick_top_five",
             {"model": "gpt-3.5-turbo", "n": 1, "temperature": 1},
-            lambda x: x,
+            "identity",
         )
         task_graph.add_task(top_five)
 
         # Extract the list of titles
         extract_titles = LLMTask(
-            extract_titles_prompt(top_five.task_id),
+            "extract_titles",
             {"model": "gpt-3.5-turbo", "n": 1, "temperature": 0},
-            lambda x: json.loads(x),
-            [top_five.task_id],
+            "parse_json",
+            top_five,
         )
         task_graph.add_task(extract_titles)
-        titles_task_ids.append(extract_titles.task_id)
+        titles_tasks.append(extract_titles)
 
-    task_graph.add_output_task(PythonTask(tally_votes, titles_task_ids))
+    task_graph.add_output_task(PythonTask("tally_votes", *titles_tasks))
     return task_graph
 
 
-def top_five_prompt():
+def pick_top_five(context):
     def format_ideas(ideas):
         shuffled_ideas = ideas
         random.shuffle(shuffled_ideas)
@@ -39,29 +48,24 @@ def top_five_prompt():
             [f"{i}. {idea}" for i, idea in enumerate(shuffled_ideas, start=1)]
         )
 
-    return lambda input: (
-        f"""You are an AI writing assistant helping an author filter through their story concepts to find the ideas with the most potential.
+    return f"""You are an AI writing assistant helping an author filter through their story concepts to find the ideas with the most potential.
 The following is a list of ideas for an illustrated children's book:
 
-{format_ideas(input["global"]["ideas"])}
+{format_ideas(context.graph_input()["ideas"])}
 
-Pick the five {input["global"]["criteria"]}."""
-    )
+Pick the five {context.graph_input()["criteria"]}."""
 
 
-def extract_titles_prompt(task_id):
-    return lambda input: (
-        f"""Extract the titles of the below five story premises into a json list format:
-{input[task_id]}
+def extract_titles(context: GraphContext, top_five):
+    return f"""Extract the titles of the below five story premises into a json list format:
+{top_five}
 
 Output json ONLY - your output will be directly parsed so it must have NO other text such as a preamble."""
-    )
 
 
-def tally_votes(input):
-    task_inputs = [input[task_id] for task_id in input.keys() if task_id != "global"]
+def tally_votes(context:GraphContext, idea_lists):
     all_ideas = []
-    for idea_list in task_inputs:
+    for idea_list in idea_lists:
         all_ideas.extend(idea_list)
 
     counts = [(idea, all_ideas.count(idea)) for idea in set(all_ideas)]
