@@ -16,16 +16,16 @@ if TYPE_CHECKING:
 
 
 class Task(ABC):
-    def __init__(self, *deps: Union[tuple[Task, ...], tuple[str, ...]], **kwdeps: Union[dict[str, Task], dict[str, str]]):
+    def __init__(self, *deps: Union[Task, str], **kwdeps: Union[Task, str]):
         self.task_id = str(uuid4())
-        self.deps = deps
+        self.deps: tuple[Union[Task, str], ...] = deps
         self.kwdeps = kwdeps
         self.created_by: Optional[Union[Task, str]] = None
         self.output_data: Optional[Any] = None
         self.output: Optional[Future] = None
 
     @property
-    def dependencies(self) -> Union[tuple[Task, ...], tuple[str, ...]]:
+    def dependencies(self) -> tuple[Union[Task, str], ...]:
         declared_deps = self.deps + tuple(self.kwdeps.values())
         if self.created_by:
             return declared_deps + (self.created_by,)
@@ -53,10 +53,10 @@ class Task(ABC):
             self.output.set_result(self.output_data)
             return
 
-        # Collect dependncy output.
-        dep_results = [await dep.output for dep in self.deps]
+        # Collect dependncy output. We know tasks are actual Tasks with output futures at this point.
+        dep_results: list[Any] = [await dep.output for dep in self.deps] #type: ignore
         kwdep_results = {
-            kwdep_name: await kwdep.output for kwdep_name, kwdep in self.kwdeps.items()
+            kwdep_name: await kwdep.output for kwdep_name, kwdep in self.kwdeps.items() #type: ignore
         }
 
         # Execute task.
@@ -93,7 +93,7 @@ class Task(ABC):
             "task_id": self.task_id,
             "deps": [get_id(dep) for dep in self.deps],
             "kwdeps": {k: get_id(v) for k, v in self.kwdeps.items()},
-            "created_by": get_id(self.created_by),
+            "created_by": get_id(self.created_by) if self.created_by else None,
             # TODO may need to do something fancier at some point to handle custom types in output_data
             "output_data": self.output_data,
         }
@@ -126,8 +126,8 @@ class LLMTask(Task):
         prompt_formatter_id: str,
         params: Any,
         output_parser_id: str,
-        *deps: Union[tuple[Task, ...], tuple[str, ...]],
-        **kwdeps: Union[dict[str, Task], dict[str, str]],
+        *deps: Union[Task, str],
+        **kwdeps: Union[Task, str]
     ):
         super().__init__(*deps, **kwdeps)
         self.prompt_formatter_id = prompt_formatter_id
@@ -156,7 +156,7 @@ class LLMTask(Task):
             messages = [messages]
 
         # Todo: handle api calls elsewhere for request batching and retries
-        response = await openai.ChatCompletion.acreate(
+        response: Any = await openai.ChatCompletion.acreate(
             messages=messages,
             **self.params,
         )
@@ -187,7 +187,7 @@ class LLMTask(Task):
 
 class PythonTask(Task):
     def __init__(
-        self, callback_id: str, *deps: Union[tuple[Task, ...], tuple[str, ...]], **kwdeps: Union[dict[str, Task], dict[str, str]]
+        self, callback_id: str, *deps: Union[Task, str], **kwdeps: Union[Task, str]
     ):
         super().__init__(*deps, **kwdeps)
         self.callback_id = callback_id
@@ -228,8 +228,8 @@ class TaskGraphTask(Task):
         self,
         subgraph: "TaskGraph",
         input_formatter_id: str,
-        *deps: Union[tuple[Task, ...], tuple[str, ...]],
-        **kwdeps: Union[dict[str, Task], dict[str, str]]
+        *deps: Union[Task, str],
+        **kwdeps: Union[Task, str]
     ):
         super().__init__(*deps, **kwdeps)
         self.subgraph = subgraph

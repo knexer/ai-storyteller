@@ -7,7 +7,7 @@ from llmtaskgraph.task import Task
 class TaskGraph:
     def __init__(self):
         self.tasks: list[Task] = []
-        self.graph_input: Optional[Any] = None
+        self.graph_input: Any = None
         self.output_task: Optional[Task] = None
 
         # transient state during run
@@ -35,7 +35,7 @@ class TaskGraph:
         return GraphContext(self, task)
 
     async def run(
-        self, function_registry: dict[str, Callable], graph_input: Optional[Any] = None
+        self, function_registry: dict[str, Callable], graph_input: Any = None
     ) -> Any:
         self.started = True
         self.graph_input = graph_input
