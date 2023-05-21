@@ -11,7 +11,9 @@ export function TaskDetail({ graph, task_id, onEdit }) {
     </div>);
   }
 
-  const task = graph.tasks.find((task) => task.task_id === task_id);
+  const allTasks = (graph) => graph.tasks.flatMap((task) => [task].concat(task.type === "TaskGraphTask" ? allTasks(task.subgraph) : []));
+
+  const task = allTasks(graph).find((task) => task.task_id === task_id);
 
   const handleEdit = () => {
     setNewOutputData(task.output_data);

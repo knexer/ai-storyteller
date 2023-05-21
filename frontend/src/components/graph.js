@@ -12,6 +12,10 @@ import { TaskNode } from "./task_node";
 
 import "reactflow/dist/style.css";
 
+function allTasks(graph) {
+  return graph.tasks.flatMap((task) => [task].concat(task.type === "TaskGraphTask" ? allTasks(task.subgraph) : []));
+}
+
 function makeNode(task, direction) {
   return {
     id: task.task_id,
@@ -91,11 +95,12 @@ export default function Graph({ serialized_graph, select_task_id }) {
   // Create nodes from serialized graph
   const direction = "TB"; // TB or LR
 
-  const initialNodes = serialized_graph.tasks.map((task) =>
+  const all_tasks = allTasks(serialized_graph);
+  const initialNodes = all_tasks.map((task) =>
     makeNode(task, direction)
   );
-  const initialEdges = serialized_graph.tasks.flatMap((task) =>
-    makeEdges(task, serialized_graph.tasks)
+  const initialEdges = all_tasks.flatMap((task) =>
+    makeEdges(task, all_tasks)
   );
 
   const graph = getLayoutedElements(initialNodes, initialEdges, direction);
