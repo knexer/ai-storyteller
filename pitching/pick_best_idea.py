@@ -60,17 +60,18 @@ def pick_best_idea():
     return task_graph
 
 
-def weighted_sum(context: GraphContext, weights, *votes):
+def weighted_sum(context: GraphContext, most_creative, best_fit, cutest):
     ideas = context.graph_input()["ideas"]
     weights = [0.5, 0.3, 0.2]
+    votes = [most_creative, best_fit, cutest]
     combined_vote_counts = defaultdict(float)
     for weight, vote in zip(weights, votes):
         for idea, count in vote:
             combined_vote_counts[idea] += count * weight
 
-    print_numbered_list("Most creative", votes[0])
-    print_numbered_list("Best fit", votes[1])
-    print_numbered_list("Cutest", votes[2])
+    print_numbered_list("Most creative", most_creative)
+    print_numbered_list("Best fit", best_fit)
+    print_numbered_list("Cutest", cutest)
 
     selected_title = max(combined_vote_counts.items(), key=lambda x: x[1])[0]
 

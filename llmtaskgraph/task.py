@@ -261,6 +261,7 @@ class TaskGraphTask(Task):
 
     @classmethod
     def from_json(cls, json: dict[str, Any]) -> TaskGraphTask:
+        from llmtaskgraph.task_graph import TaskGraph  # Import here to avoid circular dependency
         task = cls(
             TaskGraph.from_json(json.pop("subgraph")),
             json.pop("input_formatter_id"),

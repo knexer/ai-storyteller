@@ -46,8 +46,8 @@ def make_ideas(num_idea_sets):
     return make_ideas
 
 
-def join_ideas(context:GraphContext, idea_lists):
+def join_ideas(context:GraphContext, *idea_lists):
     ideas = []
-    for idea_list in idea_lists.values():
+    for idea_list in idea_lists:
         ideas.extend(idea_list)
     return ideas

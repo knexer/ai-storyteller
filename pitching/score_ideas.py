@@ -10,8 +10,8 @@ def function_registry():
         "pick_top_five": pick_top_five,
         "extract_titles": extract_titles,
         "tally_votes": tally_votes,
-        "identity": lambda x: x,
-        "parse_json": lambda x: json.loads(x),
+        "identity": lambda context, x: x,
+        "parse_json": lambda context, x: json.loads(x),
     }
 
 def score_ideas(num_voters):
@@ -63,7 +63,7 @@ def extract_titles(context: GraphContext, top_five):
 Output json ONLY - your output will be directly parsed so it must have NO other text such as a preamble."""
 
 
-def tally_votes(context:GraphContext, idea_lists):
+def tally_votes(context:GraphContext, *idea_lists):
     all_ideas = []
     for idea_list in idea_lists:
         all_ideas.extend(idea_list)
