@@ -1,12 +1,10 @@
-import React from "react";
+import React, {useEffect} from "react";
 import ReactFlow, {
   MiniMap,
   Controls,
   Background,
-  useNodesState,
-  useEdgesState,
 } from "reactflow";
-import dagre from "dagre";
+import elkLayout from "./graph_layout";
 
 import { TaskNode } from "./task_node";
 
@@ -16,12 +14,21 @@ function allTasks(graph) {
   return graph.tasks.flatMap((task) => [task].concat(task.type === "TaskGraphTask" ? allTasks(task.subgraph) : []));
 }
 
-function makeNode(task, direction) {
+function makeNode(task, direction, parentId) {
   return {
     id: task.task_id,
+    parentNode: parentId,
     type: "Task",
     data: { task: task, direction: direction },
   };
+}
+
+function makeNodes(task, direction, parentId = null) {
+  const node = makeNode(task, direction, parentId);
+  if (task.type === "TaskGraphTask") {
+    return [node].concat(task.subgraph.tasks.flatMap((subgraphTask) => makeNodes(subgraphTask, direction, node.id)));
+  }
+  return [node];
 }
 
 function makeEdge(task, dep_task_id, tasks, sourceHandle = "output") {
@@ -52,58 +59,33 @@ const nodeTypes = {
   "Task": TaskNode,
 };
 
-function getLayoutedElements(nodes, edges, direction = "TB") {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-  // TODO: get node width and height from nodes instead of hardcoding
-  const nodeWidth = 172;
-  const nodeHeight = 100;
-
-  const isHorizontal = direction === "LR";
-  dagreGraph.setGraph({ rankdir: direction });
-
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-  });
-
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(dagreGraph);
-
-  nodes.forEach((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    node.targetPosition = isHorizontal ? "left" : "top";
-    node.sourcePosition = isHorizontal ? "right" : "bottom";
-
-    // We are shifting the dagre node position (anchor=center center) to the top left
-    // so it matches the React Flow node anchor point (top left).
-    node.position = {
-      x: nodeWithPosition.x - nodeWithPosition.width / 2,
-      y: nodeWithPosition.y - nodeWithPosition.height / 2,
-    };
-
-    return node;
-  });
-
-  return { nodes, edges, width: dagreGraph.width, height: dagreGraph.height };
-}
-
 export default function Graph({ serialized_graph, select_task_id }) {
   // Create nodes from serialized graph
-  const direction = "TB"; // TB or LR
 
-  const all_tasks = allTasks(serialized_graph);
-  const initialNodes = all_tasks.map((task) =>
-    makeNode(task, direction)
-  );
-  const initialEdges = all_tasks.flatMap((task) =>
-    makeEdges(task, all_tasks)
-  );
+  // Create graph state
+  const [graph, setGraph] = React.useState(null);
 
-  const graph = getLayoutedElements(initialNodes, initialEdges, direction);
+  // elkLayout is async
+  useEffect(() => {
+    const direction = "TB"; // TB or LR
+
+    const all_tasks = allTasks(serialized_graph);
+    const initialNodes = serialized_graph.tasks.flatMap((task) =>
+      makeNodes(task, direction)
+    );
+    const initialEdges = all_tasks.flatMap((task) =>
+      makeEdges(task, all_tasks)
+    );
+
+    elkLayout(initialNodes, initialEdges, direction).then((layouted) => {
+      setGraph(layouted);
+    });
+    return () => {};
+  }, [serialized_graph]);
+
+  if (!graph) {
+    return <div>Loading...</div>;
+  };
 
   const onNodeClick = (_, node) => {
     // Possibly also somehow highlight the selected node?

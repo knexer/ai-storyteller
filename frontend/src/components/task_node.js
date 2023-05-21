@@ -21,12 +21,23 @@ function PythonTaskSummary( task ) {
   );
 }
 
+function TaskGraphTaskSummary( task ) {
+  return (
+    <>
+      <div>TaskGraphTask</div>
+      <div>{task.input_formatter_id}</div>
+    </>
+  );
+}
+
 function TaskSummary(task){
   switch (task.type) {
     case "LLMTask":
       return LLMTaskSummary(task);
     case "PythonTask":
       return PythonTaskSummary(task);
+    case "TaskGraphTask":
+      return TaskGraphTaskSummary(task);
     default:
       return <div>Unknown task type: {task.type}</div>;
   };
@@ -45,7 +56,7 @@ export function TaskNode({data}) {
         type="target"
         position={isHorizontal ? Position.Left : Position.Top}
       />
-      <div className="react-flow__node-default custom-node">
+      <div className="react-flow__node-default custom-node" style={task.type === "TaskGraphTask" ? {width: data.width, height: data.height, backgroundColor: "transparent"} : null}>
         {TaskSummary(task)}
       </div>
       <Handle
