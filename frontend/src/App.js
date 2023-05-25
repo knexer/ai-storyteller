@@ -3,6 +3,10 @@ import { GraphAndDetail } from "./app/graph_and_detail";
 
 const serverUrl = "ws://localhost:5678";
 
+function allTasks(graph) {
+  return graph.tasks.flatMap((task) => [task].concat(task.type === "TaskGraphTask" ? allTasks(task.subgraph) : []));
+}
+
 export default function App() {
   const [serialized_graph, setSerializedGraph] = useState(null);
   const [ws, setWs] = useState(null);
@@ -37,7 +41,7 @@ export default function App() {
     const new_graph = JSON.parse(JSON.stringify(serialized_graph));
 
     // Find the task
-    const task = new_graph.tasks.find((task) => task.task_id === task_id);
+    const task = allTasks(new_graph).find((task) => task.task_id === task_id);
     if (!task) return;
 
     // Update the output_data
@@ -52,6 +56,7 @@ export default function App() {
       console.log("WebSocket is not connected");
       return;
     }
+    console.log("Sending updated task graph")
     ws.send(JSON.stringify(serialized_graph));
   };
 

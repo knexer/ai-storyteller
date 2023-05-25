@@ -51,6 +51,7 @@ class WebSocketServer:
         await websocket.send(json.dumps(task_graph_data))
 
     async def get_updated_graph(self, websocket):
+        print("Waiting for updated task graph.")
         # Wait for the next task graph update
         message = await websocket.recv()
 

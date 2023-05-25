@@ -16,12 +16,13 @@ export function TaskDetail({ graph, task_id, onEdit }) {
   const task = allTasks(graph).find((task) => task.task_id === task_id);
 
   const handleEdit = () => {
-    setNewOutputData(task.output_data);
+    setNewOutputData(JSON.stringify(task.output_data));
     setEditing(true);
   };
 
   const handleSave = () => {
-    onEdit(task.task_id, newOutputData);
+    console.log(newOutputData);
+    onEdit(task.task_id, JSON.parse(newOutputData));
     setEditing(false);
   };
 
@@ -46,7 +47,7 @@ export function TaskDetail({ graph, task_id, onEdit }) {
       <div>
         {editing ? (
           <>
-            <textarea value={JSON.stringify(newOutputData)} onChange={(e) => setNewOutputData(JSON.parse(e.target.value))}/>
+            <textarea value={newOutputData} onChange={(e) => setNewOutputData(e.target.value)}/>
             <button onClick={handleSave}>Save</button>
             <button onClick={handleDelete}>Delete Output</button>
           </>
