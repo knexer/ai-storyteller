@@ -17,6 +17,6 @@ openai.api_key = os.environ["OPENAI_API_KEY"]
 overall_graph = make_premise(2)
 graph_input = {"conditioning_info": "The client is a dog food company. The story should help sell their dog food by manipulating the readers."}
 
-server = WebSocketServer(overall_graph, function_registry, graph_input)
+server = WebSocketServer(overall_graph, function_registry(), graph_input)
 print("Created server.")
 server.run()
