@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 import openai
 
-from llmtaskgraph.task import LLMTask, PythonTask
-from llmtaskgraph.task_graph import TaskGraph
+from .task import LLMTask, PythonTask
+from .task_graph import TaskGraph
 
 load_dotenv()
 openai.api_key = os.environ["OPENAI_API_KEY"]

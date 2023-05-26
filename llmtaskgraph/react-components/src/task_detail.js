@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export function TaskDetail({ graph, task_id, onEdit }) {
+export default function TaskDetail({ graph, task_id, onEdit }) {
   const [editing, setEditing] = useState(false);
   const [newOutputData, setNewOutputData] = useState(null);
 

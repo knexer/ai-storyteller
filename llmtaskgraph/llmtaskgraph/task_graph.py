@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any, Optional, Callable
 
-from llmtaskgraph.task import Task
+from .task import Task
 
 
 class TaskGraph:

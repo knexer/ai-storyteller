@@ -4,9 +4,7 @@ import openai
 
 import os
 from dotenv import load_dotenv
-from llmtaskgraph.app.server import WebSocketServer
-from llmtaskgraph.task import TaskGraphTask
-from llmtaskgraph.task_graph import TaskGraph
+from example_app.backend.server import WebSocketServer
 
 from pitching.make_premise import make_premise, function_registry
 

@@ -1,7 +1,6 @@
 import { useState } from "react";
 
-import Graph from "../components/graph";
-import { TaskDetail } from "../components/task_detail";
+import {Graph, TaskDetail} from "llmtaskgraph";
 
 export function GraphAndDetail({ serialized_graph, onEdit }) {
   const [selected_task_id, update_selected_task_id] = useState(null);

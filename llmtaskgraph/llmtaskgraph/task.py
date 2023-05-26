@@ -11,8 +11,8 @@ import json
 from typing import TYPE_CHECKING, Callable, Union
 
 if TYPE_CHECKING:
-    from llmtaskgraph.task_graph import GraphContext
-    from llmtaskgraph.task_graph import TaskGraph
+    from .task_graph import GraphContext
+    from .task_graph import TaskGraph
 
 
 class Task(ABC):
