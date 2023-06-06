@@ -4,7 +4,7 @@ from llmtaskgraph.task_graph import GraphContext, TaskGraph
 import re
 
 
-def parse_ideas(context:GraphContext, response):
+def parse_ideas(context: GraphContext, response):
     # The regular expression pattern:
     # It looks for a number followed by a '.', ':', or ')' (with optional spaces)
     # and then captures any text until it finds a newline character or the end of the string
@@ -29,15 +29,24 @@ Here's an example of a successful premise:
 Come up with a numbered list of eight of your best ideas. Focus on variety within the scope of the client's requests.
 """
 
+
 def function_registry():
-    return {"make_eight_ideas": make_eight_ideas, "parse_ideas": parse_ideas, "join_ideas": join_ideas}
+    return {
+        "make_eight_ideas": make_eight_ideas,
+        "parse_ideas": parse_ideas,
+        "join_ideas": join_ideas,
+    }
+
 
 def make_ideas(num_idea_sets):
     make_ideas = TaskGraph()
     ideation_tasks = []
     for _ in range(num_idea_sets):
         ideation_task = LLMTask(
-            "make_eight_ideas", {"model": "gpt-3.5-turbo", "n": 1, "temperature": 1}, "parse_ideas"
+            "make_eight_ideas",
+            "openai_chat",
+            {"model": "gpt-3.5-turbo", "n": 1, "temperature": 1},
+            "parse_ideas",
         )
         ideation_tasks.append(ideation_task)
         make_ideas.add_task(ideation_task)
@@ -46,7 +55,7 @@ def make_ideas(num_idea_sets):
     return make_ideas
 
 
-def join_ideas(context:GraphContext, *idea_lists):
+def join_ideas(context: GraphContext, *idea_lists):
     ideas = []
     for idea_list in idea_lists:
         ideas.extend(idea_list)

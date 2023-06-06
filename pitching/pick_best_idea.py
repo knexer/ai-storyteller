@@ -4,15 +4,23 @@ from fuzzywuzzy import fuzz
 
 from llmtaskgraph.task_graph import TaskGraph, GraphContext
 from llmtaskgraph.task import TaskGraphTask, PythonTask
-from pitching.score_ideas import score_ideas, function_registry as score_ideas_function_registry
+from pitching.score_ideas import (
+    score_ideas,
+    function_registry as score_ideas_function_registry,
+)
+
 
 def function_registry():
-    return dict({
-        "init_most_creative": init_most_creative,
-        "init_best_fit": init_best_fit,
-        "init_cutest": init_cutest,
-        "weighted_sum": weighted_sum,
-    }, **score_ideas_function_registry())
+    return dict(
+        {
+            "init_most_creative": init_most_creative,
+            "init_best_fit": init_best_fit,
+            "init_cutest": init_cutest,
+            "weighted_sum": weighted_sum,
+        },
+        **score_ideas_function_registry(),
+    )
+
 
 def init_most_creative(context: GraphContext):
     return {
@@ -20,11 +28,13 @@ def init_most_creative(context: GraphContext):
         "ideas": context.graph_input()["ideas"],
     }
 
+
 def init_best_fit(context: GraphContext):
     return {
         "criteria": f"""ideas that best fit the client's constraints:\n{context.graph_input()["conditioning_info"]}""",
         "ideas": context.graph_input()["ideas"],
     }
+
 
 def init_cutest(context: GraphContext):
     return {
@@ -36,26 +46,23 @@ def init_cutest(context: GraphContext):
 def pick_best_idea():
     task_graph = TaskGraph()
     most_creative = TaskGraphTask(
-        score_ideas(4),
+        score_ideas(10),
         "init_most_creative",
     )
     task_graph.add_task(most_creative)
 
     best_fit = TaskGraphTask(
-        score_ideas(4),
+        score_ideas(10),
         "init_best_fit",
     )
     task_graph.add_task(best_fit)
     cutest = TaskGraphTask(
-        score_ideas(4),
+        score_ideas(10),
         "init_cutest",
     )
     task_graph.add_task(cutest)
     task_graph.add_output_task(
-        PythonTask(
-            "weighted_sum",
-            most_creative, best_fit, cutest
-        )
+        PythonTask("weighted_sum", most_creative, best_fit, cutest)
     )
     return task_graph
 

@@ -10,9 +10,8 @@ def function_registry():
         "pick_top_five": pick_top_five,
         "extract_titles": extract_titles,
         "tally_votes": tally_votes,
-        "identity": lambda context, x: x,
-        "parse_json": lambda context, x: json.loads(x),
     }
+
 
 def score_ideas(num_voters):
     task_graph = TaskGraph()
@@ -21,6 +20,7 @@ def score_ideas(num_voters):
         # Pick the top five ideas
         top_five = LLMTask(
             "pick_top_five",
+            "openai_chat",
             {"model": "gpt-3.5-turbo", "n": 1, "temperature": 1},
             "identity",
         )
@@ -29,6 +29,7 @@ def score_ideas(num_voters):
         # Extract the list of titles
         extract_titles = LLMTask(
             "extract_titles",
+            "openai_chat",
             {"model": "gpt-3.5-turbo", "n": 1, "temperature": 0},
             "parse_json",
             top_five,
@@ -63,7 +64,7 @@ def extract_titles(context: GraphContext, top_five):
 Output json ONLY - your output will be directly parsed so it must have NO other text such as a preamble."""
 
 
-def tally_votes(context:GraphContext, *idea_lists):
+def tally_votes(context: GraphContext, *idea_lists):
     all_ideas = []
     for idea_list in idea_lists:
         all_ideas.extend(idea_list)
