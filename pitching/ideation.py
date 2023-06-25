@@ -1,10 +1,11 @@
 from llmtaskgraph.task import LLMTask, PythonTask
 from llmtaskgraph.task_graph import GraphContext, TaskGraph
+from llmtaskgraph.function_registry import FunctionRegistry, FunctionId, openai_chat
 
 import re
 
 
-def parse_ideas(context: GraphContext, response):
+def parse_ideas(response: str) -> list[str]:
     # The regular expression pattern:
     # It looks for a number followed by a '.', ':', or ')' (with optional spaces)
     # and then captures any text until it finds a newline character or the end of the string
@@ -13,7 +14,7 @@ def parse_ideas(context: GraphContext, response):
     return pattern.findall(response)
 
 
-def make_eight_ideas(context: GraphContext):
+def make_eight_ideas(context: GraphContext) -> str:
     return f"""You are an AI storybook writer. You write engaging, creative, and highly diverse content for illustrated books for children.
 The first step in your process is ideation - workshop a bunch of ideas and find the ones with that special spark.
 
@@ -30,33 +31,37 @@ Come up with a numbered list of eight of your best ideas. Focus on variety withi
 """
 
 
-def function_registry():
-    return {
-        "make_eight_ideas": make_eight_ideas,
-        "parse_ideas": parse_ideas,
-        "join_ideas": join_ideas,
-    }
+def join_ideas(*idea_lists: list[str]) -> list[str]:
+    ideas: list[str] = []
+    for idea_list in idea_lists:
+        ideas.extend(idea_list)
+    return ideas
 
 
-def make_ideas(num_idea_sets):
+registry = FunctionRegistry()
+make_eight_ideas_id: FunctionId[[], str] = registry.register(make_eight_ideas)
+parse_ideas_id: FunctionId[[str], list[str]] = registry.register_no_context(parse_ideas)
+join_ideas_id: FunctionId[[list[str]], list[str]] = registry.register_no_context(
+    join_ideas
+)
+
+
+def function_registry() -> FunctionRegistry:
+    return registry.copy()
+
+
+def make_ideas(num_idea_sets: int) -> TaskGraph:
     make_ideas = TaskGraph()
-    ideation_tasks = []
+    ideation_tasks: list[LLMTask] = []
     for _ in range(num_idea_sets):
         ideation_task = LLMTask(
-            "make_eight_ideas",
-            "openai_chat",
+            make_eight_ideas_id,
+            openai_chat,
             {"model": "gpt-3.5-turbo", "n": 1, "temperature": 1},
-            "parse_ideas",
+            parse_ideas_id,
         )
         ideation_tasks.append(ideation_task)
         make_ideas.add_task(ideation_task)
 
-    make_ideas.add_output_task(PythonTask("join_ideas", *ideation_tasks))
+    make_ideas.add_output_task(PythonTask(join_ideas_id, *ideation_tasks))
     return make_ideas
-
-
-def join_ideas(context: GraphContext, *idea_lists):
-    ideas = []
-    for idea_list in idea_lists:
-        ideas.extend(idea_list)
-    return ideas

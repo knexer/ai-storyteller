@@ -4,7 +4,6 @@ import openai
 
 import os
 from dotenv import load_dotenv
-from llmtaskgraph.task import TaskGraphTask
 from llmtaskgraph.task_graph import TaskGraph
 
 from pitching.make_premise import make_premise, function_registry
@@ -19,6 +18,7 @@ conditioning_info = "The client is a dog food company. The story should help sel
 print("Graph constructed:")
 print(json.dumps(overall_graph.to_json()))
 overall_graph_2 = TaskGraph.from_json(overall_graph.to_json())
-best_idea = asyncio.run(overall_graph_2.run(function_registry(), {"conditioning_info": conditioning_info}))
+overall_graph_2.graph_input = {"conditioning_info": conditioning_info}
+best_idea: str = asyncio.run(overall_graph_2.run(function_registry()))
 print(best_idea)
 print(json.dumps(overall_graph_2.to_json()))

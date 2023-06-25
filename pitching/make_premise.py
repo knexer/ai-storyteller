@@ -1,5 +1,6 @@
 from llmtaskgraph.task import TaskGraphTask
 from llmtaskgraph.task_graph import GraphContext, TaskGraph
+from llmtaskgraph.function_registry import FunctionRegistry, forward_graph_input
 
 from pitching.ideation import (
     make_ideas,
@@ -11,36 +12,34 @@ from pitching.pick_best_idea import (
 )
 
 
-def function_registry():
-    return dict(
-        {
-            "init_pick_best": init_pick_best,
-        },
-        **pick_best_idea_function_registry(),
-        **make_ideas_function_registry()
-    )
-
-
-def forward_graph_input(context: GraphContext):
-    return context.graph_input()
-
-
-def init_pick_best(context: GraphContext, ideas):
+def init_pick_best(
+    context: GraphContext, ideas: list[str]
+) -> dict[str, str | list[str]]:
     return {
         "conditioning_info": context.graph_input()["conditioning_info"],
         "ideas": ideas,
     }
 
 
-def make_premise(num_idea_sets):
+registry = FunctionRegistry()
+init_pick_best_id = registry.register(init_pick_best)
+
+
+def function_registry() -> FunctionRegistry:
+    return registry.merge(pick_best_idea_function_registry()).merge(
+        make_ideas_function_registry()
+    )
+
+
+def make_premise(num_idea_sets: int) -> TaskGraph:
     overall_graph = TaskGraph()
-    make_ideas_task = TaskGraphTask(make_ideas(num_idea_sets), "forward_graph_input")
+    make_ideas_task = TaskGraphTask(make_ideas(num_idea_sets), forward_graph_input)
     overall_graph.add_task(make_ideas_task)
 
     overall_graph.add_output_task(
         TaskGraphTask(
             pick_best_idea(),
-            "init_pick_best",
+            init_pick_best_id,
             make_ideas_task,
         )
     )
